@@ -1,0 +1,54 @@
+{
+  "name": "ExportRepeatingData",
+
+  "namespace":"Stanford\\ExportRepeatingData",
+
+  "description": "A module for exporting repeating forms data",
+
+  "versions": [
+  ],
+
+  "authors": [
+    {
+      "name": "Susan Weber",
+      "email": "scweber@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Ihab Zeedia",
+      "email": "ihab@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+
+  "permissions": [
+    "redcap_survey_page_top",
+    "redcap_data_entry_form_top",
+    "redcap_every_page_top"
+  ],
+
+  "links": {
+    "control-center": [
+    ],
+    "project": [
+      {
+        "name": "Review / Export Data",
+        "icon": "report",
+        "url": "index.php"
+      }
+    ]
+  },
+
+  "system-settings": [
+  ],
+
+  "project-settings": [
+  ],
+
+  "compatibility": {
+    "php-version-min": "5.4.0",
+    "redcap-version-min": "8.7.0"
+  }
+
+
+}
