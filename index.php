@@ -1,7 +1,7 @@
 <?php
 //
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
-# Render Table Page
+# Render left hand side navigation and PID / project name banner
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
 ?>
@@ -21,18 +21,18 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 
     <!-- hierarchical tree control -->
-    <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("css/bstreeview.css") ?>"/>
-    <script src="<?php echo $module->getUrl("js/bstreeview.js") ?>"></script>
+    <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("client/css/bstreeview.css") ?>"/>
+    <script src="<?php echo $module->getUrl("client/js/bstreeview.js") ?>"></script>
 
     <!-- javascript with data to drive the left hand side hierarchical tree browser of instruments & fields -->
     <?php
-    require_once($module->getModulePath() . "view/instruments_and_fields.php");
+    require_once($module->getModulePath() . "client/include/instruments_and_fields.php");
     ?>
     <!-- local setup for drag n drop. Note this must occur after the inclusion of instruments_and_fields.php -->
-    <script src="<?php echo $module->getUrl("js/dragNdrop.js") ?>"></script>
+    <script src="<?php echo $module->getUrl("client/js/dragNdrop.js") ?>"></script>
 
     <!-- local style overrides -->
-    <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("css/exportStyle.css") ?>"/>
+    <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("client/css/exportStyle.css") ?>"/>
 
 </head>
 <body>
@@ -259,3 +259,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
 </body>
 </html>
+
+<?php
+// ok, now that the page has rendered, do a bit more initialization to prepare for the
+// eventual request. This call makes a round trip to the database which takes a noticeable amount of time
+// so delay it until after the page has been fully rendered
+$module->initMeta();

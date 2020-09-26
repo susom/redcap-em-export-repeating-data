@@ -44,7 +44,7 @@
      */
     $.extend(bstreeView.prototype, {
         /**
-         * bstreeview intialize.
+         * bstreeview initialize.
          */
         init: function () {
             this.tree = [];

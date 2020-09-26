@@ -4,12 +4,11 @@ namespace Stanford\ExportRepeatingData;
 require_once "emLoggerTrait.php";
 ini_set('max_execution_time', 0);
 set_time_limit(0);
-require_once(__DIR__ . "/classes/RepeatingForms2.php");
-
+require_once(__DIR__ . "/client/classes/InstrumentMetadata.php");
 
 use REDCap;
 use Stanford\ExportRepeatingData\emLoggerTrait;
-use \Stanford\ExportRepeatingData\RepeatingForms2;
+use Stanford\ExportRepeatingData\InstrumentMetadata;
 
 define('PRIMARY_INSTRUMENT', 'primary-instrument');
 define('SECONDARY_INSTRUMENT', 'secondary-instrument');
@@ -28,14 +27,19 @@ define('ROWS_PER_CALL', 1000);
  * this to save date field which will be used to filter data for secondary instruments.
  */
 define('DATE_IDENTIFIER', 'date_identifier');
+
+/**
+ * Class ExportRepeatingData
+ * @package Stanford\ExportRepeatingData
+ * @property \Stanford\ExportRepeatingData\InstrumentMetadata $instrumentMetadata
+ */
 class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 {
     use emLoggerTrait;
 
     private $project;
 
-
-    private $eventId;
+    private $instrumentMetadata;
 
     private $inputs;
 
@@ -81,32 +85,48 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
 
     /**
-     * CorrelatedReport constructor.
+     *  constructor.
      */
     public function __construct()
     {
         parent::__construct();
 
         try {
-            $this->emLog("hello");
+            error_log("hello from the ExportRepeatingData constructor ". $_GET['pid']);
             if (isset($_GET['pid'])) {
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-
                 $this->setDataDictionary(REDCap::getDataDictionary($this->getProject()->project_id, 'array'));
 
                 $temp = json_decode($this->getProjectSetting("dates_identifiers"), true);
                 if (!empty($temp)) {
                     self::$mainDateField = $temp;
                 }
+                $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
 
 
             }
 
+/* This works. But the constructor is called frequently, so keep it simple
+ ( the constructor is invoked without the PID when REDcap runs )
+            $q = db_query("select distinct md.form_name
+from redcap_metadata md
+join redcap_data rd on md.project_id=rd.project_id and md.field_name=rd.field_name
+join redcap_events_repeat rer on rer.event_id=rd.event_id and rer.form_name=md.form_name
+where md.project_id = 14");
+
+            for ($i = db_num_rows($q); $i >= 0; $i--) {
+                error_log(db_result($q, $i));
+            }
+*/
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
 
+    }
+
+    public function initMeta() {
+        $this->instrumentMetadata->init();
     }
 
     /**
@@ -180,22 +200,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         $this->patientFilter = $patientFilter;
     }
 
-    /**
-     * @return Utilities\RepeatingForms
-     */
-    public function getRepeatingUtility()
-    {
-        return $this->repeatingUtility;
-    }
-
-    /**
-     * @param Utilities\RepeatingForms $repeatingUtility
-     */
-    public function setRepeatingUtility($repeatingUtility)
-    {
-        $this->repeatingUtility = $repeatingUtility;
-    }
-
 
     /**
      * @return mixed
@@ -237,6 +241,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     public function isRepeatingForm($key)
     {
+        $this->emLog('HELLO');
+        error_log('HELLO error');
         return $this->getProject()->isRepeatingForm($this->getEventId(), $key);
     }
 
@@ -696,67 +702,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         $this->setRecordIdFirst();
     }
 
-    /**
-     * get associated secondary instrument data for specific record id
-     * @param string $date
-     * @param string $instrument
-     * @param int $recordId
-     * @return array
-     */
-    private function getSecondaryInstrumentData($date, $instrument, $recordId)
-    {
-        $dateField = $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']][DATE_IDENTIFIER];
-        //is secondary instrument data not loaded yet load it now for one time.
-        if (!isset($this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'])) {
-            $param = array(
-                //'filterLogic' => $this->getPatientFilterText(),
-                'fields' => $this->inputs[SECONDARY_FIELDS][$instrument['name']],
-                'return_format' => 'array',
-            );
-            $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'] = REDCap::getData($param);
-        }
 
-        $temp = array();
-        $result = array();
-        $timeFilters = $this->processSecondaryTimeFilter($date, $instrument);
-        //if repeating instrument
-        if (array_key_exists('repeat_instances',
-            $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'][$recordId])) {
-            //get from secondary the records for id we passed
-            $records = $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'][$recordId]['repeat_instances'][$this->getFirstEventId()][$instrument['name']];
-            foreach ($records as $record) {
-                if ($timeFilters) {
-
-                    //now loop over before/after time filters for secondary records
-                    foreach ($timeFilters as $filter) {
-                        // if secondary report within the range on the primary record.
-                        if (strtotime($record[$dateField]) >= strtotime($filter['start']) && strtotime($record[$dateField]) <= strtotime($filter['end'])) {
-                            // if within the range compare with
-
-                            //
-                            $start = strtotime($record[$dateField]) - strtotime($filter['start']);
-                            $end = strtotime($filter['end']) - strtotime($record[$dateField]);
-
-                            $temp[min($start, $end)] = $record;
-                        }
-                    }
-                } else {
-                    // if no time define just add record to the result
-                    $temp[] = $record;
-                }
-
-            }
-        } elseif (array_key_exists($recordId, $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'])) {
-            //get from secondary the records for id we passed
-            $result[] = $this->inputs[SECONDARY_INSTRUMENT][$instrument['name']]['data'][$recordId][$this->getFirstEventId()];
-        }
-
-        // if multiple secondary records exist get the closest one to primary based on the array keys and return that.
-        if (!empty($temp)) {
-            $result[] = $temp[array_pop(array_keys($temp, min($temp)))];
-        }
-        return $result;
-    }
 
     /**
      * define the secondary instrument date search criteria.

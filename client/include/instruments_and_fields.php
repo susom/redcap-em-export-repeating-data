@@ -13,7 +13,6 @@ use \REDCap;
         var json = [
             <?php
             $dataDict = REDCap::getDataDictionary('array');
-
             $instruments = REDCap::getInstrumentNames();
             $event = $module->getFirstEventId();
             $first_time_through_inst = true;
