@@ -176,12 +176,8 @@ $instruments = REDCap::getInstrumentNames();
     }
 
     function tickAllPanelCheckboxes (label, value) {
-        console.log ('tickAllPanelCheckboxes');
-        console.log (label);
         var selector1 = "." + getInstrumentForField(label);
-        console.log(selector1);
         var selector2 = "#" + getInstrumentForField(label);
-        console.log(selector2);
         var checkBoxes = $( selector1 );
         checkBoxes.prop("checked", value);
         checkBoxes = $( selector2 );
