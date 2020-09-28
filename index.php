@@ -86,20 +86,19 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         <!-- right hand side -->
         <div class="col-md-9 pt-3">
             <div class="cardinal">Filter Rows - Drag and Drop from left menu</div>
-            <div class="container" style="border:1px solid #cecece;">
-                <ul id="row_filter" class="list-group filters-fields connectedSortable sortable" style="    min-height: 50px;
-    width: 100%;">
-                    <div class="grey ml-n15" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>
+            <div class="container droptarget" >
+                <div id="row_filter" class="list-group filters-fields " style="min-height: 50px; width: 100%;">
+                    <div class="grey cbox-panel" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>
 
-                </ul>
+                </div>
             </div>
 
             <p></p>
 
             <div class="cardinal">Specify Report Columns - Drag and Drop from left menu</div>
-            <div class="container" style="border:1px solid #cecece; padding: 1px">
-                <div id="column_spec" class="list-group filters-fields connectedSortable sortable" style="min-height: 200px; width: 100%;">
-                    <div class="grey" id="tip_missing_col_2">Tip: drop an instrument to select all its fields
+            <div class="container droptarget" >
+                <div id="column_spec" class="list-group filters-fields " style="min-height: 200px; width: 100%;">
+                    <div class="grey cbox-panel" id="tip_missing_col_2">Tip: drop an instrument to select all its fields
                         <br/>
                         Instruments are tagged with this icon : <span class="fas fa-file-alt"></span></div>
 
