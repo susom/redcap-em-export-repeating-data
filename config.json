@@ -35,7 +35,12 @@
         "name": "Review / Export Data",
         "icon": "report",
         "url": "index.php"
-      }
+      },
+      {
+        "name": "Generate DB Data",
+        "icon": "report",
+        "url": "export.php"
+      }          
     ]
   },
 
