@@ -4,6 +4,9 @@ namespace Stanford\ExportRepeatingData;
 
 use \REDCap;
 use \Project;
+define('STANDARD', 'standard');
+define('LONGITUDINAL', 'longitudinal');
+
 /**
  * Class InstrumentMetadata
  * This utility class caches metadata for all instruments associated with the project
@@ -19,6 +22,7 @@ class InstrumentMetadata
     private $pid;
     private $dataDictionary;
     private $resultArray;
+    private $isStandard;
 
     function __construct($pid, $dataDictionary)
     {
@@ -49,6 +53,17 @@ class InstrumentMetadata
      */
     public function init()
     {
+        // look up whether this is a longitudinal or standard project
+        $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
+
+        $result = db_query($sql);
+        error_log('longitudinal?');
+        foreach ($result as $record) {
+            error_log(print_r($record, TRUE));
+            $this->isStandard = ($record['cnt'] == 1);
+        }
+        error_log($this->isStandard);
+        // now build the list of attributes for all instruments associated with the project
         $sql = "select distinct md.form_name as instrument,
            case when rer.form_name is not null then 'repeating' else 'singleton' end as cardinality
            from redcap_metadata md
@@ -90,4 +105,5 @@ class InstrumentMetadata
     }
 
 
-}
+} ?>
+

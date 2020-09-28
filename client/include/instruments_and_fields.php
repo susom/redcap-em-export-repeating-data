@@ -1,20 +1,34 @@
 <?php
+// this php script generates Javascript specific to this project
 
 namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
-
 use \REDCap;
 
+
+$dataDict = REDCap::getDataDictionary('array');
+$instruments = REDCap::getInstrumentNames();
+$event = $module->getFirstEventId();
 ?>
 <script>
     $(function () {
 
+        <!-- this next block of functions are the select-all / clear-all behavior of the panel header checkbox -->
+        <?php
+        foreach ($instruments as $key => $instrument) {
+        ?>
+        $("#<?php echo $key ?>").click( function () {
+            var checked = $("#<?php echo $key ?>"); <!-- the header checkbox has the instrument name as its id -->
+            var checkBoxes = $(".<?php echo $key ?>"); <!-- the associated fields all have the instrument name as their class -->
+            checkBoxes.prop("checked", checked.prop("checked"));
+        });
+        <?php
+        }
+        ?>
+       <!-- this data structure is passed in to bstreeview for rendering as the left side hierarchical list control -->
         var json = [
             <?php
-            $dataDict = REDCap::getDataDictionary('array');
-            $instruments = REDCap::getInstrumentNames();
-            $event = $module->getFirstEventId();
             $first_time_through_inst = true;
             foreach ($instruments as $key => $instrument) {
             if (! $first_time_through_inst) { echo ",";}
@@ -53,9 +67,6 @@ use \REDCap;
         }
         ?>
     ];
-console.log('in instruments_and_fields');
-console.log(json);
-        console.log('in instruments_and_fields');
         $('#tree').bstreeview({ data: JSON.stringify(json) });
         $('#tree-item-0').collapse();
     });

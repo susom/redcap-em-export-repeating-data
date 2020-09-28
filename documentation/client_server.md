@@ -18,7 +18,8 @@ Row filters, when supplied, are translated to WHERE clauses.
 Table joins are then added using the data cardinality and foreign key relationship information.
 
 #### JSON object
-The Json object has three attributes: columns, cardinality and filters. All three of these
+The Json object has four attributes: project, columns, cardinality and filters. 
+The value of project is either standard or longitudinal; the other three attributes
 are lists.
 
 The columns list contains objects with attributes instrument, field and is_date.
@@ -32,6 +33,7 @@ param1 and param2.
 #### JSON example
 ```javascript
 {
+    "project": "standard",
     "columns": [{
             "instrument": "person",
             "field": "last_name",
