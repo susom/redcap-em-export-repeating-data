@@ -26,7 +26,7 @@ $event = $module->getFirstEventId();
         <?php
         }
         ?>
-       <!-- this data structure is passed in to bstreeview for rendering as the left side hierarchical list control -->
+        <!-- this data structure is passed in to bstreeview for rendering as the left side hierarchical list control -->
         var json = [
             <?php
             $first_time_through_inst = true;
@@ -39,35 +39,40 @@ $event = $module->getFirstEventId();
                 text: "<?php echo $instrument ?>",
                 id: "<?php echo $key ?>",
                 class: "draggable1 instrument",
-                icon: "fa fa-folder",
+                icon: "fa fa-file-alt",
                 nodes: [
-                        <?php
-                        $fields = REDCap::getFieldNames($key);
-                        $first_time_through_fields = true;
-                        foreach ($fields as $field) {
-                        if ($dataDict[$field]['field_type'] === 'descriptive') {
-                            continue;
-                        }
+                    <?php
+                    $fields = REDCap::getFieldNames($key);
+                    $first_time_through_fields = true;
+                    foreach ($fields as $field) {
+                    if ($dataDict[$field]['field_type'] === 'descriptive') {
+                        continue;
+                    }
                     if (! $first_time_through_fields) { echo ",";}
                     $first_time_through_fields = false;
                     //error_log(print_r($dataDict[$field]['field_type'], TRUE));
-                        ?>
+                    ?>
                     {
                         text: "<?php echo $field ?>",
                         id: "<?php echo $field ?>",
                         class: "draggable1"
                     }
+                    <?php
+                    }
+                    ?>
+                ]
+            }
+
             <?php
             }
             ?>
-        ]
-    }
-
-        <?php
-        }
-        ?>
-    ];
+        ];
         $('#tree').bstreeview({ data: JSON.stringify(json) });
-        $('#tree-item-0').collapse();
+        var item0 = $('#tree-item-0');
+        item0.collapse();
+        $('.state-icon', item0.previousSibling).slice(0,1)
+            .toggleClass('fa fa-angle-down')
+            .toggleClass('fa fa-angle-right')
+        ;
     });
 </script>
