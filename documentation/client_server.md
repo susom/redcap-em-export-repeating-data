@@ -18,8 +18,13 @@ Row filters, when supplied, are translated to WHERE clauses.
 Table joins are then added using the data cardinality and foreign key relationship information.
 
 #### JSON object
-The Json object has four attributes: project, columns, cardinality and filters. 
-The value of project is either standard or longitudinal; the other three attributes
+The Json object has five attributes: project, preview, columns, cardinality and filters.
+ 
+The value of project is either standard or longitudinal
+
+The value of preview is either true or false
+
+The other three attributes
 are lists.
 
 The columns list contains objects with attributes instrument, field and is_date.
@@ -34,6 +39,7 @@ param1 and param2.
 ```javascript
 {
     "project": "standard",
+    "preview": "true",
     "columns": [{
             "instrument": "person",
             "field": "last_name",
@@ -58,19 +64,25 @@ param1 and param2.
     "cardinality": [{
             "instrument": "person",
             "cardinality": "singleton"
-            "foreign_key_field": "",
-            "foreign_key_ref": ""
         },
         {
             "instrument": "visit",
-            "cardinality": "repeating",
+            "cardinality": "repeating-primary",
             "foreign_key_field": "",
             "foreign_key_ref": ""
         },
         {
             "instrument": "meds",
-            "cardinality": "repeating",
+            "cardinality": "repeating-secondary",
+            "join_type": "instance",
             "foreign_key_field": "med_visit_instance",
+            "foreign_key_ref": "visit"
+        },
+        {
+            "instrument": "pft",
+            "cardinality": "repeating-secondary ",
+            "join_type": "date_proximity",
+            "foreign_key_field": "",
             "foreign_key_ref": "visit"
         }
     ],

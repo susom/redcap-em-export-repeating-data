@@ -49,7 +49,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             Review / Export Data
         </div>
     </div>
-    <div class="row" style="padding-right: 20px;">
+    <div class="row" style="padding-right: 15px;">
 
         <div class="col-md-8  cardinal emphatic header nowrap text-left " style="min-width:200px">
             <span>Report Name:   <input type="text" id="report_name" size="40"/></span>
