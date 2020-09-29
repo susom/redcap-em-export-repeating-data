@@ -61,3 +61,5 @@ by the [Instance Table EM](https://github.com/lsgs/redcap-instance-table),
 a companion EM to "Instance Select". The "Instance Select" and "Instance Table" EMs work well 
 together; a project that uses them both in conjunction with this reporting EM can produce
 a plausible approximation of an underlying relational database.
+
+Last Updated: 09/29/2020 10:50am
