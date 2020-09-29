@@ -1,8 +1,14 @@
 <?php
 //
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
+
+$inDownloadMode = isset($_POST['action']) ;
+
 # Render Table Page
-require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
+if (!$inDownloadMode) {
+
+    require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
+}
 
 
 /*
@@ -27,6 +33,25 @@ echo $markup ;
 
 /*
 "filter" : [ "last_name like \'S%\'" ]
+
+        {
+            "instrument": "pft",
+            "cardinality": "repeating-secondary ",
+            "join_type": "date_proximity",
+            "join_field": "pft_test_date",
+            "foreign_key_field": "visit_date",
+            "foreign_key_ref": "visit"
+        }
+
+,
+        "filters": [{
+                "instrument": "person",
+                "field": "record",
+                "operator": "E",
+                "param1": "1",
+                "param2": ""
+            }
+        ]
 */
 
 $json_str = '
@@ -76,14 +101,6 @@ $json_str = '
                 "foreign_key_field": "visit_date",
                 "foreign_key_ref": "visit"
             }
-        ],
-        "filters": [{
-                "instrument": "person",
-                "field": "record_id",
-                "operator": "equals",
-                "param1": "1",
-                "param2": ""
-            }
         ]
     }
 ' ;
@@ -91,8 +108,9 @@ $json_str = '
 
 $json_inp = json_decode($json_str) ;
 $json = json_decode('{ "forms" : []}') ;
-echo "Json error1 :" . json_last_error() ;
+if (!$inDownloadMode) echo "Json error1 :" . json_last_error() ;
 
+# columns array
 foreach ($json_inp->columns as $column) {
     if (!isset($json->forms[$column->instrument])) {
         $json->forms[$column->instrument] = json_decode('{ "fields" : [] }') ; 
@@ -101,6 +119,7 @@ foreach ($json_inp->columns as $column) {
     $json->forms[$column->instrument]->fields[] = $column->field ;
 }
 
+# cardinality array
 foreach ($json_inp->cardinality as $cardinality) {
     
     $form = $json->forms[$cardinality->instrument] ;
@@ -129,7 +148,36 @@ foreach ($json_inp->cardinality as $cardinality) {
 
 }
 
-//var_dump($json) ;
+# filters array
+foreach ($json_inp->filters as $filter) {
+
+    $filstr = $filter->instrument . "." . $filter->field . " " ;
+
+    if ($filter->operator == "E")
+        $filstr = $filstr . " = '" . db_escape($filter->param1) . "'" ;
+    elseif ($filter->operator == "NE")
+        $filstr = $filstr . " <> '" . db_escape($filter->param1) . "'" ;
+    elseif ($filter->operator == "CONTAINS")
+        $filstr = $filstr . " like '%" . db_escape($filter->param1) . "%'" ;
+    elseif ($filter->operator == "NOT_CONTAIN")
+        $filstr = $filstr . " not like '%" . db_escape($filter->param1) . "%'" ;        
+    elseif ($filter->operator == "STARTS_WITH")
+        $filstr = $filstr . " like '" . db_escape($filter->param1) . "%'" ;                
+    elseif ($filter->operator == "ENDS_WITH")
+        $filstr = $filstr . " like '%" . db_escape($filter->param1) . "'" ;                        
+    elseif ($filter->operator == "LT")
+        $filstr = $filstr . " < '" . db_escape($filter->param1) . "'" ;        
+    elseif ($filter->operator == "LTE")
+        $filstr = $filstr . " <= '" . db_escape($filter->param1) . "'" ;        
+    elseif ($filter->operator == "GT")
+        $filstr = $filstr . " > '" . db_escape($filter->param1) . "'" ;        
+    elseif ($filter->operator == "GTE")
+        $filstr = $filstr . " >= '" . db_escape($filter->param1) . "'" ;     
+
+    $json->filters[] = $filstr ;
+}
+
+// var_dump($json) ;
 
 /*
 $json_str = '
@@ -154,12 +202,57 @@ $json_str = '
     ]    
 } ' ;
 
+$json_str = '
+{    
+    "forms" : [
+        {
+            "form_name": "patient_information",
+            "fields": ["record_id","first_name","last_name","middle_name","mrn","dob","death_date","gender","ssn_suffix","race","ethnicity","city","state","zip","email","patient_information_complete"],
+            "cardinality": "singleton"
+        }, 
+        {
+            "form_name": "surgical_data_hipknee",
+            "fields": ["surgical_data_unique_key","surgery_type","surfirstname","surlastname","surnpi","pat_height_cm","pat_weight_kg","pat_height_ftin","pat_weight_lbs","pat_bmi","proceduredate","admsndt","dschrgdt","dschdispcode","px_1","px_1_name","px_2","px_2_name","px_3","px_3_name","px_4","px_4_name","px_5","px_5_name","px_6","px_6_name","px_7","px_7_name","px_8","px_8_name","px_9","px_9_name","px_10","px_10_name","dx_1","dx_1_name","dxlat","surgicalapproach","techniquehip","techniqueknee","procedurestarttime","procedureendtime","procedureduration","computernavigation","roboticassistedsurgery","lengthofstay","anesthesiatype","periarticularinjection","mfg_1","componentname_1","cat_1","lot_1","mfg_2","componentname_2","cat_2","lot_2","mfg_3","componentname_3","cat_3","lot_3","mfg_4","componentname_4","cat_4","lot_4","mfg_5","componentname_5","cat_5","lot_5","mfg_6","componentname_6","cat_6","lot_6","mfg_7","componentname_7","cat_7","lot_7","mfg_8","componentname_8","cat_8","lot_8","mfg_9","componentname_9","cat_9","lot_9","mfg_10","componentname_10","cat_10","lot_10","mfg_11","componentname_11","cat_11","lot_11","mfg_12","componentname_12","cat_12","lot_12","mfg_13","componentname_13","cat_13","lot_13","mfg_14","componentname_14","cat_14","lot_14","mfg_15","componentname_15","cat_15","lot_15","mfg_16","componentname_16","cat_16","lot_16","mfg_17","componentname_17","cat_17","lot_17","mfg_18","componentname_18","cat_18","lot_18","mfg_19","componentname_19","cat_19","lot_19","mfg_20","componentname_20","cat_20","lot_20","asa_class","com_1","com_1_name","poa_1","com_2","com_2_name","poa_2","com_3","com_3_name","poa_3","com_4","com_4_name","poa_4","com_5","com_5_name","poa_5","com_6","com_6_name","poa_6","com_7","com_7_name","poa_7","com_8","com_8_name","poa_8","com_9","com_9_name","poa_9","com_10","com_10_name","poa_10","com_11","com_11_name","poa_11","com_12","com_12_name","poa_12","com_13","com_13_name","poa_13","com_14","com_14_name","poa_14","com_15","com_15_name","poa_15","com_16","com_16_name","poa_16","com_17","com_17_name","poa_17","com_18","com_18_name","poa_18","com_19","com_19_name","poa_19","com_20","com_20_name","poa_20","surgical_data_hipknee_complete"],
+            "cardinality": "repeating"
+        },     
+        {
+            "form_name": "postop_surgical_data",
+            "fields": ["postop_data_unique_key","proceduredate_pop","joint_pop","dxlat_pop","re_pat_height_cm_pop","re_pat_weight_kg_pop","re_pat_height_ftin_pop","re_pat_weight_lbs_pop","re_pat_bmi_pop","re_admsndt_pop","re_dschrgdt_pop","re_dschdispcode_pop","re_lengthofstay_pop","re_proceduredate_pop","re_px_1_pop","re_px_1_pop_name","re_px_2_pop","re_px_2_pop_name","re_px_3_pop","re_px_3_pop_name","re_px_4_pop","re_px_4_pop_name","re_px_5_pop","re_px_5_pop_name","re_px_6_pop","re_px_6_pop_name","re_px_7_pop","re_px_7_pop_name","re_px_8_pop","re_px_8_pop_name","re_px_9_pop","re_px_9_pop_name","re_px_10_pop","re_px_10_pop_name","re_dx_1_pop","re_dx_1_pop_name","re_poa_1_pop","re_dx_2_pop","re_dx_2_pop_name","re_poa_2_pop","re_dx_3_pop","re_dx_3_pop_name","re_poa_3_pop","re_dx_4_pop","re_dx_4_pop_name","re_poa_4_pop","re_dx_5_pop","re_dx_5_pop_name","re_poa_5_pop","re_dx_6_pop","re_dx_6_pop_name","re_poa_6_pop","re_dx_7_pop","re_dx_7_pop_name","re_poa_7_pop","re_dx_8_pop","re_dx_8_pop_name","re_poa_8_pop","re_dx_9_pop","re_dx_9_pop_name","re_poa_9_pop","re_dx_10_pop","re_dx_10_pop_name","re_poa_10_pop","re_dx_11_pop","re_dx_11_pop_name","re_poa_11_pop","re_dx_12_pop","re_dx_12_pop_name","re_poa_12_pop","re_dx_13_pop","re_dx_13_pop_name","re_poa_13_pop","re_dx_14_pop","re_dx_14_pop_name","re_poa_14_pop","re_dx_15_pop","re_dx_15_pop_name","re_poa_15_pop","re_dx_16_pop","re_dx_16_pop_name","re_poa_16_pop","re_dx_17_pop","re_dx_17_pop_name","re_poa_17_pop","re_dx_18_pop","re_dx_18_pop_name","re_poa_18_pop","re_dx_19_pop","re_dx_19_pop_name","re_poa_19_pop","re_dx_20_pop","re_dx_20_pop_name","re_poa_20_pop","re_dx_21_pop","re_dx_21_pop_name","re_poa_21_pop","re_dx_22_pop","re_dx_22_pop_name","re_poa_22_pop","re_dx_23_pop","re_dx_23_pop_name","re_poa_23_pop","re_dx_24_pop","re_dx_24_pop_name","re_poa_24_pop","re_dx_25_pop","re_dx_25_pop_name","re_poa_25_pop","re_dx_26_pop","re_dx_26_pop_name","re_poa_26_pop","re_dx_27_pop","re_dx_27_pop_name","re_poa_27_pop","re_dx_28_pop","re_dx_28_pop_name","re_poa_28_pop","re_dx_29_pop","re_dx_29_pop_name","re_poa_29_pop","re_dx_30_pop","re_dx_30_pop_name","re_poa_30_pop","postop_surgical_data_complete"],
+            "cardinality": "repeating"
+        }
+    ]    
+} ' ;
+
 $json = json_decode($json_str) ;
 
 echo "Json error :" . json_last_error() ;
 */
 
 // var_dump($json) ;
+
+$json_str = '
+{    
+    "forms" : [
+        {
+            "form_name": "patient_information",
+            "fields": ["record_id","first_name","last_name","middle_name","mrn","dob","death_date","gender","ssn_suffix","race","ethnicity","city","state","zip","email","patient_information_complete"],
+            "cardinality": "singleton"
+        }, 
+        {
+            "form_name": "surgical_data_hipknee",
+            "fields": ["surgical_data_unique_key","surgery_type","surfirstname","surlastname","surnpi","pat_height_cm","pat_weight_kg","pat_height_ftin","pat_weight_lbs","pat_bmi","proceduredate","admsndt","dschrgdt","dschdispcode","px_1","px_1_name","px_2","px_2_name","px_3","px_3_name","px_4","px_4_name","px_5","px_5_name","px_6","px_6_name","px_7","px_7_name","px_8","px_8_name","px_9","px_9_name","px_10","px_10_name","dx_1","dx_1_name","dxlat","surgicalapproach","techniquehip","techniqueknee","procedurestarttime","procedureendtime","procedureduration","computernavigation","roboticassistedsurgery","lengthofstay","anesthesiatype","periarticularinjection","mfg_1","componentname_1","cat_1","lot_1","mfg_2","componentname_2","cat_2","lot_2","mfg_3","componentname_3","cat_3","lot_3","mfg_4","componentname_4","cat_4","lot_4","mfg_5","componentname_5","cat_5","lot_5","mfg_6","componentname_6","cat_6","lot_6","mfg_7","componentname_7","cat_7","lot_7","mfg_8","componentname_8","cat_8","lot_8","mfg_9","componentname_9","cat_9","lot_9","mfg_10","componentname_10","cat_10","lot_10","mfg_11","componentname_11","cat_11","lot_11","mfg_12","componentname_12","cat_12","lot_12","mfg_13","componentname_13","cat_13","lot_13","mfg_14","componentname_14","cat_14","lot_14","mfg_15","componentname_15","cat_15","lot_15","mfg_16","componentname_16","cat_16","lot_16","mfg_17","componentname_17","cat_17","lot_17","mfg_18","componentname_18","cat_18","lot_18","mfg_19","componentname_19","cat_19","lot_19","mfg_20","componentname_20","cat_20","lot_20","asa_class","com_1","com_1_name","poa_1","com_2","com_2_name","poa_2","com_3","com_3_name","poa_3","com_4","com_4_name","poa_4","com_5","com_5_name","poa_5","com_6","com_6_name","poa_6","com_7","com_7_name","poa_7","com_8","com_8_name","poa_8","com_9","com_9_name","poa_9","com_10","com_10_name","poa_10","com_11","com_11_name","poa_11","com_12","com_12_name","poa_12","com_13","com_13_name","poa_13","com_14","com_14_name","poa_14","com_15","com_15_name","poa_15","com_16","com_16_name","poa_16","com_17","com_17_name","poa_17","com_18","com_18_name","poa_18","com_19","com_19_name","poa_19","com_20","com_20_name","poa_20","surgical_data_hipknee_complete"],
+            "cardinality": "repeating"
+        },     
+        {
+            "form_name": "postop_surgical_data",
+            "fields": ["postop_data_unique_key","proceduredate_pop","joint_pop","dxlat_pop","re_pat_height_cm_pop","re_pat_weight_kg_pop","re_pat_height_ftin_pop","re_pat_weight_lbs_pop","re_pat_bmi_pop","re_admsndt_pop","re_dschrgdt_pop","re_dschdispcode_pop","re_lengthofstay_pop","re_proceduredate_pop","re_px_1_pop","re_px_1_pop_name","re_px_2_pop","re_px_2_pop_name","re_px_3_pop","re_px_3_pop_name","re_px_4_pop","re_px_4_pop_name","re_px_5_pop","re_px_5_pop_name","re_px_6_pop","re_px_6_pop_name","re_px_7_pop","re_px_7_pop_name","re_px_8_pop","re_px_8_pop_name","re_px_9_pop","re_px_9_pop_name","re_px_10_pop","re_px_10_pop_name","re_dx_1_pop","re_dx_1_pop_name","re_poa_1_pop","re_dx_2_pop","re_dx_2_pop_name","re_poa_2_pop","re_dx_3_pop","re_dx_3_pop_name","re_poa_3_pop","re_dx_4_pop","re_dx_4_pop_name","re_poa_4_pop","re_dx_5_pop","re_dx_5_pop_name","re_poa_5_pop","re_dx_6_pop","re_dx_6_pop_name","re_poa_6_pop","re_dx_7_pop","re_dx_7_pop_name","re_poa_7_pop","re_dx_8_pop","re_dx_8_pop_name","re_poa_8_pop","re_dx_9_pop","re_dx_9_pop_name","re_poa_9_pop","re_dx_10_pop","re_dx_10_pop_name","re_poa_10_pop","re_dx_11_pop","re_dx_11_pop_name","re_poa_11_pop","re_dx_12_pop","re_dx_12_pop_name","re_poa_12_pop","re_dx_13_pop","re_dx_13_pop_name","re_poa_13_pop","re_dx_14_pop","re_dx_14_pop_name","re_poa_14_pop","re_dx_15_pop","re_dx_15_pop_name","re_poa_15_pop","re_dx_16_pop","re_dx_16_pop_name","re_poa_16_pop","re_dx_17_pop","re_dx_17_pop_name","re_poa_17_pop","re_dx_18_pop","re_dx_18_pop_name","re_poa_18_pop","re_dx_19_pop","re_dx_19_pop_name","re_poa_19_pop","re_dx_20_pop","re_dx_20_pop_name","re_poa_20_pop","re_dx_21_pop","re_dx_21_pop_name","re_poa_21_pop","re_dx_22_pop","re_dx_22_pop_name","re_poa_22_pop","re_dx_23_pop","re_dx_23_pop_name","re_poa_23_pop","re_dx_24_pop","re_dx_24_pop_name","re_poa_24_pop","re_dx_25_pop","re_dx_25_pop_name","re_poa_25_pop","re_dx_26_pop","re_dx_26_pop_name","re_poa_26_pop","re_dx_27_pop","re_dx_27_pop_name","re_poa_27_pop","re_dx_28_pop","re_dx_28_pop_name","re_poa_28_pop","re_dx_29_pop","re_dx_29_pop_name","re_poa_29_pop","re_dx_30_pop","re_dx_30_pop_name","re_poa_30_pop","postop_surgical_data_complete"],
+            "cardinality": "repeating"
+        }
+    ]    
+} ' ;
+
+$json = json_decode($json_str) ;
+
 
 $select = "" ;
 $from = "" ;
@@ -176,7 +269,7 @@ foreach ($json->forms as $form) {
         $primaryFormName = $form->form_name ;
     }
 
-    echo "Processing form " . $form->form_name . "<br>" ;
+    // echo "Processing form " . $form->form_name . "<br>" ;
 
     $formSql = ($primaryForm ? " ( select rd.record " : " ( select rd.record, rd.instance ") ;
 
@@ -221,16 +314,67 @@ foreach ($json->forms as $form) {
 
 $sql = $select . " " . $from ;
 
-if (isset($json->filter)) {
-    $sql = $sql . " where " . implode(" and ", $json->filter);
+if (isset($json->filters)) {
+    $sql = $sql . " where " . implode(" and ", $json->filters);
 }
 
-echo "SQL to execute :" . $sql ;
+if (!$inDownloadMode) echo "SQL to execute :" . $sql ;
 
 $rptdata = db_query($sql) ;
 
 if (strlen(db_error()) > 0) {
     echo "<div style='color:red'>Error in database call :" . db_error() . "</div>";
+}
+
+
+// export data as csv file
+$action = isset($_POST['action']) && !empty($_POST['action']) ? $_POST['action'] : null;
+
+if ($action === "generateReport") {
+    
+    $filename = sprintf('%1$s-%2$s-%3$s.csv', str_replace(' ', '', $project_name), date('Ymd'), date('His'));
+
+    //$filename = 'Podaanga.csv' ;
+   
+    // Output CSV-specific headers
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="'.$filename.'"');
+    header('Content-Transfer-Encoding: binary');
+    
+    // Open the output stream
+    $fh = fopen('php://output', 'w');
+
+    // Start output buffering (to capture stream contents)
+    ob_start();
+
+    // CSV Header
+    fputcsv($fh, $fields);
+
+
+    // CSV Data
+    $rowCount = 0 ;
+    while ($row = db_fetch_assoc($rptdata)) {
+        
+        fputcsv($fh, $row) ;
+        
+        if ($rowCount == 10) {
+            $string = ob_get_clean();
+            echo $string ;            
+            $rowCount = 0 ;
+        }
+        
+        $rowCount++ ;
+    }
+
+    // Get the contents of the output buffer
+    $string = ob_get_clean();
+    
+    echo $string ;
+
+    // Stream the CSV data
+    exit();
+    
 }
 
 $markup = "<table id='dataTable' border='1'><thead><tr>" ;
@@ -287,7 +431,10 @@ $markup = $markup . "</table>" ;
 
         </div>
         <div class="col-md-2 cardinal emphatic header nowrap text-left">
-                <button id="save_export" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data </button>
+            <form method="post">
+                <input type="hidden" name="action" value="generateReport">
+                <button id="save_export" type="submit" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data </button>
+            </form>
         </div>
     </div>
 </div>
