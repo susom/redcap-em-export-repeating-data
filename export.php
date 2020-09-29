@@ -2,7 +2,10 @@
 //
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 
-$inDownloadMode = isset($_POST['action']) ;
+// export data as csv file
+$action = isset($_POST['action']) && !empty($_POST['action']) ? $_POST['action'] : null;
+
+$inDownloadMode = ($action == "downloadReport") ;
 
 # Render Table Page
 if (!$inDownloadMode) {
@@ -320,17 +323,18 @@ if (isset($json->filters)) {
 
 if (!$inDownloadMode) echo "SQL to execute :" . $sql ;
 
-$rptdata = db_query($sql) ;
 
-if (strlen(db_error()) > 0) {
-    echo "<div style='color:red'>Error in database call :" . db_error() . "</div>";
+if ($action == "generateReport" || $action == "downloadReport") {
+    
+    $rptdata = db_query($sql) ;
+
+    if (strlen(db_error()) > 0) {
+        echo "<div style='color:red'>Error in database call :" . db_error() . "</div>";
+    }    
 }
 
 
-// export data as csv file
-$action = isset($_POST['action']) && !empty($_POST['action']) ? $_POST['action'] : null;
-
-if ($action === "generateReport") {
+if ($action === "downloadReport") {
     
     $filename = sprintf('%1$s-%2$s-%3$s.csv', str_replace(' ', '', $project_name), date('Ymd'), date('His'));
 
@@ -377,24 +381,25 @@ if ($action === "generateReport") {
     
 }
 
-$markup = "<table id='dataTable' border='1'><thead><tr>" ;
+if ($action == "generateReport") {
+    $markup = "<table id='dataTable' border='1'><thead><tr>" ;
 
-foreach ($fields as $field) {
-    $markup = $markup . "<th>" . $field . "</th>" ;
-}
-$markup = $markup . "</tr></thead>" ;
-
-$markup = $markup . "<tbody>" ;
-while ($row = db_fetch_assoc($rptdata)) {
-    $markup = $markup . "<tr>" ;
     foreach ($fields as $field) {
-        $markup = $markup."<td>" . $row[$field] . "</td>";
+        $markup = $markup . "<th>" . $field . "</th>" ;
     }
-    $markup = $markup . "</tr>" ;
+    $markup = $markup . "</tr></thead>" ;
+    
+    $markup = $markup . "<tbody>" ;
+    while ($row = db_fetch_assoc($rptdata)) {
+        $markup = $markup . "<tr>" ;
+        foreach ($fields as $field) {
+            $markup = $markup."<td>" . $row[$field] . "</td>";
+        }
+        $markup = $markup . "</tr>" ;
+    }
+    $markup = $markup . "</tbody>" ;
+    $markup = $markup . "</table>" ;    
 }
-$markup = $markup . "</tbody>" ;
-$markup = $markup . "</table>" ;
-
 ?>
 
 <!doctype html>
@@ -433,8 +438,12 @@ $markup = $markup . "</table>" ;
         <div class="col-md-2 cardinal emphatic header nowrap text-left">
             <form method="post">
                 <input type="hidden" name="action" value="generateReport">
-                <button id="save_export" type="submit" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data </button>
+                <button id="view_export" type="submit" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> View Data </button>
             </form>
+            <form method="post">
+                <input type="hidden" name="action" value="downloadReport">
+                <button id="save_export" type="submit" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data </button>
+            </form>            
         </div>
     </div>
 </div>
