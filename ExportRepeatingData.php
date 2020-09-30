@@ -76,6 +76,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
             global $userid;
             // Hide this link from the general public
             if ($userid == 'scweber' || $userid == 'sboosi' ) $result = $link;
+        } else {
+            $result = $link;
         }
         return $result;
     }

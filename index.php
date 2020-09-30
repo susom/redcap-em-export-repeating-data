@@ -133,6 +133,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             </div>
 
             <!-- if preview is specified, this is where the preview appears -->
+            <div class ="row" id="data-error">
+                <div id="data-error-message"></div>
+            </div>
+
+            <!-- if preview is specified, this is where the preview appears -->
             <div class ="row">
 
                 <div class="col-md-12 pt-5">

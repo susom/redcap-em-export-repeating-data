@@ -4,6 +4,7 @@
 function runQuery() {
     var json = getExportJson();
     console.log($("#report-submit").val());
+    clearError();
     $.ajax({
         url: $("#report-submit").val(),
         data: json,
@@ -15,7 +16,7 @@ function runQuery() {
             console.log('in runQuery SUCCESS');
             console.log(response);
             if (response.status === 0) {
-                //TODO display the error message in response.message
+                showError("Error: " + response.message);
             } else {
                 var data = tableize(response.headers, response.data);
                 //console.log(data);
@@ -24,12 +25,21 @@ function runQuery() {
                 $( "#datatable" ).show();
             }
 
-
         },
         error: function (request, error) {
-            alert("Request: " + JSON.stringify(request));
+            showError("Server Error: " + JSON.stringify(error));
         }
     });
+}
+
+function clearError() {
+    $( "#data-error" ).hide();
+}
+
+function showError(message) {
+    $( "#datatable" ).hide();
+    $("#data-error-message").replaceWith('<div id="data-error-message"  class="alert alert-danger mt-5" >' + message + '</div>');
+    $( "#data-error" ).show();
 }
 
 function tableize(headers, rows) {
