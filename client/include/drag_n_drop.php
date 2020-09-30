@@ -153,15 +153,16 @@ $instruments = REDCap::getInstrumentNames();
     });
 
     function  appendInputs(element) {
-
+        var fieldname = element.html();
         $.ajax({
             url: $("#base-url").val(),
-            data: {field_name: element.html(), redcap_csrf_token: $("#redcap_csrf_token").val()},
+            data: {field_name: fieldname, redcap_csrf_token: $("#redcap_csrf_token").val()},
             type: 'POST',
             success: function (data) {
-                data = ' ' + data + appendContactInput();
+                data = '<input type="hidden" name="instrument" value="'+getInstrumentForField(fieldname)+'"/>'
+                    + '<input type="hidden" name="field_name" value="'+fieldname+'"/>'
+                    + data + appendFieldFilterControls();
                 element.append(data);
-
             },
             error: function (request, error) {
                 alert("Request: " + JSON.stringify(request));
@@ -169,7 +170,7 @@ $instruments = REDCap::getInstrumentNames();
         });
     }
 
-    function appendContactInput  () {
+    function appendFieldFilterControls  () {
         return '<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">\n' +
             '  <span aria-hidden="true">&times;</span>\n' +
             '</button>'

@@ -51,7 +51,18 @@ class InstrumentMetadata
     /**
      *
      */
-    public function init()
+    public function isRepeating($instrument)
+    {
+        if (! isset($this->resultArray)) {
+            $this->init();
+        }
+        return $this->resultArray[$instrument];
+    }
+
+    /**
+     *
+     */
+    private function init()
     {
         // look up whether this is a longitudinal or standard project
         $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
@@ -62,7 +73,7 @@ class InstrumentMetadata
             error_log(print_r($record, TRUE));
             $this->isStandard = ($record['cnt'] == 1);
         }
-        error_log($this->isStandard);
+    //    error_log($this->isStandard);
         // now build the list of attributes for all instruments associated with the project
         $sql = "select distinct md.form_name as instrument,
            case when rer.form_name is not null then 'repeating' else 'singleton' end as cardinality

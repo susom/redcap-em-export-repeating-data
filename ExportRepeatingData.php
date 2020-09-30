@@ -5,10 +5,12 @@ require_once "emLoggerTrait.php";
 ini_set('max_execution_time', 0);
 set_time_limit(0);
 require_once(__DIR__ . "/client/classes/InstrumentMetadata.php");
+require_once(__DIR__ . "/server/Export.php");
 
 use REDCap;
 use Stanford\ExportRepeatingData\emLoggerTrait;
 use Stanford\ExportRepeatingData\InstrumentMetadata;
+use Stanford\ExportRepeatingData\Export;
 
 define('PRIMARY_INSTRUMENT', 'primary-instrument');
 define('SECONDARY_INSTRUMENT', 'secondary-instrument');
@@ -32,6 +34,9 @@ define('DATE_IDENTIFIER', 'date_identifier');
  * Class ExportRepeatingData
  * @package Stanford\ExportRepeatingData
  * @property \Stanford\ExportRepeatingData\InstrumentMetadata $instrumentMetadata
+ * @property \Stanford\ExportRepeatingData\Export $export
+ * @property array $inputs
+ * @property array $patientFilter
  */
 class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 {
@@ -43,7 +48,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     private $dataDictionary = array();
 
-
+    private $export;
 
     /**
      *  constructor.
@@ -58,12 +63,10 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-                $this->setDataDictionary(REDCap::getDataDictionary($this->getProject()->project_id, 'array'));
-
-                $temp = json_decode($this->getProjectSetting("dates_identifiers"), true);
+                $this->setDataDictionary(REDCap::getDataDictionary($this->getProject()->project_id, 'array'));;
 
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
-
+                $this->export = new Export($this->getProject(), $this->instrumentMetadata);
 
             }
 
@@ -71,10 +74,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
             echo $e->getMessage();
         }
 
-    }
-
-    public function initMeta() {
-        $this->instrumentMetadata->init();
     }
 
     /**
@@ -189,19 +188,57 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     public function isRepeatingForm($key)
     {
-        $this->emLog('HELLO');
-        error_log('HELLO error');
         return $this->getProject()->isRepeatingForm($this->getEventId(), $key);
     }
 
-    public function sanitizeInputs($type = array())
+    /**
+     * convert json to SQL, then send back to the client as
+     * a streaming download file, so as not to run the browser
+     * out of memory for very large files
+     * @param array $config
+     */
+    public function exportToFile($config)
     {
-        if (empty($type)) {
-            $type = $_POST;
-        }
-        foreach ($type as $key => $input) {
-            $type[$key] = preg_replace('/[^a-zA-Z0-9\_\=\>\>=\<\<=](.*)$/', '', $type[$key]);
-        }
     }
+
+    /**
+     * convert json to SQL, then send the data back to the client
+     * for display in the browser. Only works with small datatsets
+     * @param array $config
+     */
+    public function displayContent($config)
+    {
+        $supportsGzip = strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') !== false;
+        error_log('support for gzip? '. $supportsGzip);
+//        //clean for last time for before display
+//        $this->cleanColumns();
+        $result = $this->export->buildAndRunQuery($config);
+        // $result1 is already json encoded
+        error_log('result is ' .print_r($result,TRUE));
+//        error_log(print_r($this->getProject(), TRUE));
+//        error_log('person repeats? ' . $this->isRepeatingForm('person'));
+//        error_log('meds repeats? ' . $this->isRepeatingForm('meds'));
+
+        //TODO add client side support for gzip
+//        if ($supportsGzip) {
+//            $output = gzencode(trim(preg_replace('/\s+/', ' ',
+//                json_encode($result, JSON_UNESCAPED_UNICODE))), 9);
+//            header("content-encoding: gzip");
+//            ob_start("ob_gzhandler");
+//        } else {
+            $output = json_encode($result);
+//        }
+        //$output = json_encode($result);
+        $offset = 60 * 60;
+        $expire = "expires: " . gmdate("D, d M Y H:i:s", time() + $offset) . " GMT";
+        header("content-type: application/json");
+        header("cache-control: must-revalidate");
+        header($expire);
+        header('Content-Length: ' . strlen($output));
+        header('Vary: Accept-Encoding');
+        echo $output;
+        ob_end_flush();
+    }
+
 
 }

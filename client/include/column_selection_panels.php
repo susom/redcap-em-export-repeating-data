@@ -36,7 +36,7 @@ foreach ($instruments as $key => $instrument) {
                     ?>
 
                     <div class="col-md-3 cbox-panel">
-                        <label for="chb2" class="pr-1"><?php echo $field ?> </label><input type="checkbox"  id="<?php echo $field ?>"  class="<?php echo $key ?>" >
+                        <label for="chb2" class="pr-1"><?php echo $field ?> </label><input type="checkbox"  id="<?php echo $field ?>"  class="column-selector <?php echo $key ?>" >
                     </div>
                     <?php
                 }
