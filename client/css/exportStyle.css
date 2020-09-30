@@ -29,12 +29,24 @@
 .panel-heading {
     color: #333;
     border-radius: 4px;
-    background-color: #f5f5f5;
     border-color: #ddd;
     margin: 0pt -10pt 0 -10pt;
     padding: 5pt 0pt 0 10pt;
 }
 
-.ml-n15 {
-
+.tier-1 {
+    background-color: #daf1c4;
 }
+
+.tier-2 {
+    background-color: #c7ecf1;
+}
+
+.tier-3 {
+    background-color: #d2eafc;
+}
+
+.tier-4 {
+    background-color: #ffddc3;
+}
+

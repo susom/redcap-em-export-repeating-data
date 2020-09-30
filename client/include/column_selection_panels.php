@@ -16,11 +16,33 @@ $instruments = REDCap::getInstrumentNames();
 ?>
 
 <?php
+$primaryTagged = FALSE;
 foreach ($instruments as $key => $instrument) {
+    if ($module->isInstanceSelectLinked($key) == 1) {
+        $cardinality = "tier-3";
+        $tag = "<span class='badge badge-primary ml-5'>Repeating; related to " . $module->instanceSelectLink($key)  . "</span>";
+    } else if ($module->isRepeatingForm($key) == 1 ) {
+        if ($primaryTagged) {
+            $cardinality = "tier-4";
+            $tag = "<select name='<?php echo ?>' class='' style=';'>" .
+            "<option value='0'>Repeating: Primary</option><option value='1' selected>Repeating: Secondary</option>" .
+            "</select> if within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> after";
+        } else {
+            $primaryTagged = TRUE;
+            $cardinality = "tier-2";
+            $tag = "<span class='badge badge-info ml-5'>Repeating: Primary/Anchor</span>";
+        }
+    } else {
+        $cardinality = "tier-1";
+        $tag = "<span class='badge badge-success ml-5'>Singleton</span>";
+    }
+
+
     ?>
     <div style="display: none;" class=" ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
-        <div class="panel-heading">
+        <div class="panel-heading <?php echo $cardinality?>">
             <label for="chb1" class="pr-1"><?php echo $instrument ?> </label><input type="checkbox"  id="<?php echo $key ?>"  >
+            <?php echo $tag ?>
             <button type="button" class="delete-panel close pr-2" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>

@@ -62,6 +62,30 @@ class InstrumentMetadata
     /**
      *
      */
+    public function isInstanceSelectLinked($instrument)
+    {
+        if (! isset($this->resultArray)) {
+            $this->init();
+        }
+        return( isset( $this->resultArray[$instrument]['foreign_key_ref'])
+            && strlen($this->resultArray[$instrument]['foreign_key_ref']) > 0);
+
+    }
+
+    /**
+     *
+     */
+    public function instanceSelectLinked($instrument)
+    {
+        if (! isset($this->resultArray)) {
+            $this->init();
+        }
+        return  $this->resultArray[$instrument]['foreign_key_ref'];
+    }
+
+    /**
+     *
+     */
     private function init()
     {
         // look up whether this is a longitudinal or standard project
@@ -113,8 +137,8 @@ class InstrumentMetadata
             }
         }
         $this->resultArray = $lookupTable;
+      //  error_log(print_r($this->resultArray,TRUE));
     }
-
 
 } ?>
 

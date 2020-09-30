@@ -198,6 +198,16 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $this->getProject()->isRepeatingForm($this->getEventId(), $key);
     }
 
+    public function isInstanceSelectLinked($key)
+    {
+        return $this->instrumentMetadata->isInstanceSelectLinked($key);
+    }
+
+    public function instanceSelectLink($key)
+    {
+        return $this->instrumentMetadata->instanceSelectLinked($key);
+    }
+
     /**
      * convert json to SQL, then send back to the client as
      * a streaming download file, so as not to run the browser
