@@ -12,24 +12,6 @@ use Stanford\ExportRepeatingData\emLoggerTrait;
 use Stanford\ExportRepeatingData\InstrumentMetadata;
 use Stanford\ExportRepeatingData\Export;
 
-define('PRIMARY_INSTRUMENT', 'primary-instrument');
-define('SECONDARY_INSTRUMENT', 'secondary-instrument');
-define('MERGED_INSTRUMENT', 'merged-instrument');
-define('DATATABLE_PAGE', 'datatable-page');
-define('CLOSEST', 'closest');
-define('FIELD', 'field');
-define('LIMITER', 'limiter');
-define('PRIMARY_FIELDS', 'primary_fields');
-define('SECONDARY_FIELDS', 'secondary_fields');
-define('ON', 'on');
-define('OFF', 'off');
-define('REPEATING_UTILITY', 'repeating_utility');
-define('ROWS_PER_CALL', 1000);
-/**
- * this to save date field which will be used to filter data for secondary instruments.
- */
-define('DATE_IDENTIFIER', 'date_identifier');
-
 /**
  * Class ExportRepeatingData
  * @package Stanford\ExportRepeatingData
@@ -75,6 +57,29 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         }
 
     }
+
+    /**
+     * Only display the Generate DB Data link for Susan and Srini
+     * @param $project_id
+     * @param $link
+     * @param null $record
+     * @param null $instrument
+     * @param null $instance
+     * @param null $page
+     * @return bool|null
+     */
+    public function redcap_module_link_check_display($project_id, $link, $record = null, $instrument = null, $instance = null, $page = null) {
+        $result = false;
+
+        // Evaluate all links for now - in the future you might have different rules for different links...
+        if (@$link['name'] == "Generate DB Data" && !empty($project_id)) {
+            global $userid;
+            // Hide this link from the general public
+            if ($userid == 'scweber' || $userid == 'sboosi' ) $result = $link;
+        }
+        return $result;
+    }
+
 
     /**
      * @return array
