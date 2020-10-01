@@ -5,6 +5,13 @@ namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 use \REDCap;
+// something is taking a while to load. is this it?
+// start debug setup part 1
+// microtime(true) returns the unix timestamp plus milliseconds as a float
+$starttime = microtime(true);
+$module->emDebug("drag_n_drop launching");
+// end debug setup part 1
+
 $instruments = REDCap::getInstrumentNames();
 
 ?>
@@ -185,3 +192,11 @@ $instruments = REDCap::getInstrumentNames();
         checkBoxes.prop("checked", value);
     }
 </script>
+<?php
+// start debug setup part 2
+$endtime = microtime(true);
+$timediff = $endtime - $starttime;
+$module->emDebug("drag_n_drop completed in " . $module->secondsToTime($timediff));
+// end debug setup part 2
+
+?>

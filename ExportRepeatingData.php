@@ -225,37 +225,34 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      */
     public function displayContent($config)
     {
-        $supportsGzip = strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') !== false;
-        error_log('support for gzip? '. $supportsGzip);
-//        //clean for last time for before display
-//        $this->cleanColumns();
-        $result = $this->export->buildAndRunQuery($config);
-        // $result1 is already json encoded
-        error_log('result is ' .print_r($result,TRUE));
-//        error_log(print_r($this->getProject(), TRUE));
-//        error_log('person repeats? ' . $this->isRepeatingForm('person'));
-//        error_log('meds repeats? ' . $this->isRepeatingForm('meds'));
+        // start debug setup part 1
+        // microtime(true) returns the unix timestamp plus milliseconds as a float
+        $starttime = microtime(true);
+        $this->emDebug("displayContent launching SQL query");
+        // end debug setup part 1
 
-        //TODO add client side support for gzip
-//        if ($supportsGzip) {
-//            $output = gzencode(trim(preg_replace('/\s+/', ' ',
-//                json_encode($result, JSON_UNESCAPED_UNICODE))), 9);
-//            header("content-encoding: gzip");
-//            ob_start("ob_gzhandler");
-//        } else {
-            $output = json_encode($result);
-//        }
-        //$output = json_encode($result);
-        $offset = 60 * 60;
-        $expire = "expires: " . gmdate("D, d M Y H:i:s", time() + $offset) . " GMT";
+        $result = $this->export->buildAndRunQuery($config);
+
+        // start debug setup part 2
+        $endtime = microtime(true);
+        $timediff = $endtime - $starttime;
+        $this->emDebug("displayContent query returned in " . $this->secondsToTime($timediff));
+        // end debug setup part 2
+
+        // TODO consider trying to compress prior to sending, as this takes a while
+        $output = json_encode($result);
         header("content-type: application/json");
-        header("cache-control: must-revalidate");
-        header($expire);
-        header('Content-Length: ' . strlen($output));
-        header('Vary: Accept-Encoding');
+
         echo $output;
-        ob_end_flush();
     }
 
+    public function secondsToTime($s)
+    {
+        $h = floor($s / 3600);
+        $s -= $h * 3600;
+        $m = floor($s / 60);
+        $s -= $m * 60;
+        return $h.':'.sprintf('%02d', $m).':'.sprintf('%02d', $s);
+    }
 
 }

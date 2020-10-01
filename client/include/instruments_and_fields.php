@@ -6,6 +6,12 @@ namespace Stanford\ExportRepeatingData;
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 use \REDCap;
 
+// something is taking a while to load. is this it?
+// start debug setup part 1
+// microtime(true) returns the unix timestamp plus milliseconds as a float
+$starttime = microtime(true);
+$module->emDebug("instruments_and_fields launching");
+// end debug setup part 1
 
 $dataDict = REDCap::getDataDictionary('array');
 $instruments = REDCap::getInstrumentNames();
@@ -76,3 +82,11 @@ $event = $module->getFirstEventId();
         ;
     });
 </script>
+<?php
+// start debug setup part 2
+$endtime = microtime(true);
+$timediff = $endtime - $starttime;
+$module->emDebug("instruments_and_fields completed in " . $module->secondsToTime($timediff));
+// end debug setup part 2
+
+?>

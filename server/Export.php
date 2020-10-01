@@ -1,7 +1,7 @@
 <?php
 
 namespace Stanford\ExportRepeatingData;
-
+/** @var ExportRepeatingData $module */
 use \REDCap;
 use \Project;
 
@@ -24,7 +24,6 @@ class Export
 
     function buildAndRunQuery($config)
     {
-        error_log($config);
         $newConfig = $this->assembleCardinality($config);
         $result = $this->runQuery($newConfig);
         return $result;
@@ -32,17 +31,18 @@ class Export
 
     function assembleCardinality($config)
     {
+        global $module;
+
         // oddly enough this operation is not idempotent. the incoming arrays get converted into objects
         $json_inp = json_decode(json_encode($config));
         $json = json_decode('{ "forms" : []}');
-
+        $json->preview = $config['preview'];
         foreach ($json_inp->columns as $column) {
-            error_log('loop '.print_r($column, TRUE));
+
             if (!isset($json->forms[$column->instrument])) {
                 $json->forms[$column->instrument] = json_decode('{ "fields" : [] }');
                 $json->forms[$column->instrument]->form_name = $column->instrument;
                 $meta = $this->instrumentMetadata->isRepeating($column->instrument);
-                error_log(print_r($meta,TRUE));
                 $json->forms[$column->instrument]->cardinality = $meta['cardinality'];
                 if ( isset($meta['foreign_key_ref']) && strlen($meta['foreign_key_ref']) > 0)  {
                     $json->forms[$column->instrument]->join_condition =
@@ -52,8 +52,9 @@ class Export
             }
             $json->forms[$column->instrument]->fields[] = $column->field;
         }
-        error_log('final json '.print_r($json,true));
         // TODO if record_id is missing, add it. Every report needs the record_id
+
+        $module->emDebug('final json '.print_r($json,true));
         return $json;
     }
 
@@ -61,7 +62,9 @@ class Export
     /*
      * use the transformed specification to build and execute the SQL
      */
-    function runQuery($json) {
+    function runQuery($json)
+    {
+        global $module;
 
         $project_id = $this->Proj->project_id;
         $select = "";
@@ -80,7 +83,7 @@ class Export
                 $primaryFormName = $form->form_name;
             }
 
-            error_log( "Processing form " . $form->form_name );
+            error_log("Processing form " . $form->form_name);
 
             $formSql = ($primaryForm ? " ( select rd.record " : " ( select rd.record, rd.instance ");
 
@@ -128,28 +131,44 @@ class Export
             $sql = $sql . " where " . implode(" and ", $json->filter);
         }
 
+        // preview row limit
+        if ("true" == $json->preview && strlen(trim($sql)) > 0) {
+            $sql = $sql . " LIMIT 200";
+        }
+
+        $module->emDebug($sql);
         error_log( "SQL to execute :" . $sql);
 
-        $rptdata = db_query($sql);
+        if ( strlen(trim($sql)) > 0) {
+            $rptdata = db_query($sql);
 
-        $result["status"] = 1; // when status = 0 the client will display the error message
-        if (strlen(db_error()) > 0) {
-            $dberr =  db_error();
-            error_log($dberr);
-            $result["status"] = 0;
-            $result["message"] = $dberr;
-        } else {
-            $data = [];
-            while ($row = db_fetch_assoc($rptdata)) {
-                $cells = [];
-                for ($k = 0 ; $k < count($headers); $k++) {
-                    $cells[] = $row[$headers[$k]];
+            error_log('db_numrows ' . db_num_rows($rptdata));
+            $result["status"] = 1; // when status = 0 the client will display the error message
+            if (strlen(db_error()) > 0) {
+                $dberr =  db_error();
+                error_log($dberr);
+                $result["status"] = 0;
+                $result["message"] = $dberr;
+            } else {
+                $data = [];
+                if ("false" == $json->preview) {
+                   $data[] = $headers;
                 }
-                $data[] = $cells;
+                while ($row = db_fetch_assoc($rptdata)) {
+                    $cells = [];
+                    for ($k = 0 ; $k < count($headers); $k++) {
+                        $cells[] = $row[$headers[$k]];
+                    }
+                    $data[] = $cells;
+                }
+                $result["headers"] = $headers;
+                $result["data"] = $data;
             }
-            $result["headers"] = $headers;
-            $result["data"] = $data;
+        } else {
+            $result["status"] = 0;
+            $result["message"] = "No data requested. You must specify at least one column";
         }
+        error_log('result ' . print_r($result, TRUE));
 
         return $result;
     }

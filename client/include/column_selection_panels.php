@@ -8,7 +8,12 @@ namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 use \REDCap;
-
+// something is taking a while to load. is this it?
+// start debug setup part 1
+// microtime(true) returns the unix timestamp plus milliseconds as a float
+$starttime = microtime(true);
+$module->emDebug("column_selection_panels launching");
+// end debug setup part 1
 
 $dataDict = REDCap::getDataDictionary('array');
 $instruments = REDCap::getInstrumentNames();
@@ -26,7 +31,7 @@ foreach ($instruments as $key => $instrument) {
             $cardinality = "tier-4";
             $tag = "<select name='<?php echo ?>' class='' style=';'>" .
             "<option value='0'>Repeating: Primary</option><option value='1' selected>Repeating: Secondary</option>" .
-            "</select> if within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> after";
+            "</select> if within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> after (days)";
         } else {
             $primaryTagged = TRUE;
             $cardinality = "tier-2";
@@ -69,7 +74,13 @@ foreach ($instruments as $key => $instrument) {
     </div>
     <?php
 }
-?>
 
+// start debug setup part 2
+$endtime = microtime(true);
+$timediff = $endtime - $starttime;
+$module->emDebug("column_selection_panels completed in " . $module->secondsToTime($timediff));
+// end debug setup part 2
+
+?>
 
 

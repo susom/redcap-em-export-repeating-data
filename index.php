@@ -115,46 +115,38 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             ?>
                         </div>
                     </div>
-                </div>
 
-            </div>
-
-            <!-- below the report specification, show buttons to trigger data preview or actual export -->
-            <div class="row">
-                <div class="col-md-3 pt-5">
-                    <button type="button"  onclick="runQuery()"  id="preview" class=" jqbuttonmed ui-button ui-corner-all ui-widget">
-                        <i class="fas fa-eye"></i> Preview Data
-                    </button>
-                </div>
-                <div class="col-md-3 pt-5">
-                    <button type="button" id="do_export" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data</button>
-
-                </div>
-            </div>
-
-            <!-- if preview is specified, this is where the preview appears -->
-            <div class ="row" id="data-error">
-                <div id="data-error-message"></div>
-            </div>
-
-            <!-- if preview is specified, this is where the preview appears -->
-            <div class ="row">
-
-                <div class="col-md-12 pt-5">
-                    <div id="datatable"  style="display: none;">
-                        <p>
-                            Your data can be previewed below.<br/> If this is not the format you were expecting, you can
-                            adjust the specification above and try again.
-                        </p>
-
-                        <div id="preview-table-div"></div>
-
-
-                        <p></p>
-                        <button id="do_export2" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Export Data</button>
-
+                    <div class="col-md-9 ml-n2 mt-5">
+                        <button type="button"  onclick="runQuery(true)"  id="preview" class=" jqbuttonmed ui-button ui-corner-all ui-widget">
+                            <i class="fas fa-eye"></i> Preview Data
+                        </button>
+                        <button type="button" id="do_export" onclick="runQuery(false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="float:right"> <i class="fas fa-file-download"></i> Export Data</button>
                     </div>
 
+                    <div class =" ml-n2 mt-5" id="data-error">
+                        <div id="data-error-message"></div>
+                    </div>
+
+
+
+
+                    <!-- if preview is specified, this is where the preview appears -->
+                    <div class="col-md-9 pt-5">
+                        <div id="datatable"  style="display: none;">
+                            <p>
+                                Your data can be previewed below.<br/> If this is not the format you were expecting, you can
+                                adjust the specification above and try again.
+                            </p>
+
+                            <div id="preview-table-div"></div>
+
+
+                            <p></p>
+                            <button type="button" id="do_export2" onclick="runQuery(false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" > <i class="fas fa-file-download"></i> Export Data</button>
+
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </form>
