@@ -135,8 +135,13 @@ function convertToCSV(objArray) {
         var line = '';
         for (var index in array[i]) {
             if (line != '') line += ','
-
+            if (array[i][index] && array[i][index].includes(",")) {
+                line += '"';
+            }
             line += array[i][index];
+            if (array[i][index] && array[i][index].includes(",")) {
+                line += '"';
+            }
         }
 
         str += line + '\r\n';
