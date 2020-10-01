@@ -135,28 +135,6 @@ $instruments = REDCap::getInstrumentNames();
             $(this).closest('.list-group-item').hide();
         });
 
-        // ajax example, not currently in use
-        $(".deploy_button").click(function() {
-            $.ajax({
-                beforeSend: function() {
-                    $('#statusbox').html("Running deployment...");
-                },
-                type: "POST",
-                url: "deploy.php",
-                data: build_payload(),
-                success: function() {
-                    console.log('Qa-run OK');
-                    //previously called via an onClick
-                    poll_loop = setInterval(function() {
-                        display_output("#statusbox", 'getoutput.php');
-                    }, 2000);
-                },
-                error: function() {
-                    console.log('Qa-run failed.');
-                }
-            });
-        });
-
     });
 
     function  appendInputs(element) {

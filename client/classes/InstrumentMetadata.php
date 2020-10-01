@@ -117,9 +117,9 @@ class InstrumentMetadata
                 $annotation = $ddEntry['field_annotation'];
 
                     // there are multiple action tags associated with a given form field
-                    $elements = explode(' ', $ddEntry['field_annotation'] );
+                    $elements = explode('@', $ddEntry['field_annotation'] );
                     foreach ($elements as $element) {
-                        if (contains($element,'@FORMINSTANCE')) {
+                        if (contains($element,'FORMINSTANCE')) {
                             $annotation = $element;
                         }
                     }
