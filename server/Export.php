@@ -137,16 +137,15 @@ class Export
         }
 
         $module->emDebug($sql);
-        error_log( "SQL to execute :" . $sql);
 
         if ( strlen(trim($sql)) > 0) {
             $rptdata = db_query($sql);
 
-            error_log('db_numrows ' . db_num_rows($rptdata));
             $result["status"] = 1; // when status = 0 the client will display the error message
             if (strlen(db_error()) > 0) {
                 $dberr =  db_error();
                 error_log($dberr);
+                $module->emlog($dberr);
                 $result["status"] = 0;
                 $result["message"] = $dberr;
             } else {
@@ -168,7 +167,6 @@ class Export
             $result["status"] = 0;
             $result["message"] = "No data requested. You must specify at least one column";
         }
-        error_log('result ' . print_r($result, TRUE));
 
         return $result;
     }

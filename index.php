@@ -49,9 +49,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                    value="<?php echo $_SERVER['REQUEST_SCHEME'] . '://' . SERVER_NAME . APP_PATH_WEBROOT . 'DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
             <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token" value="<?php echo System::getCsrfToken() ?>">
             <input type="hidden" name="report-submit" id="report-submit"
-                   value="<?php echo $module->getUrl("server/preview.php") ?>">
-            <input type="hidden" name="csv-export-url" id="csv-export-url"
-                   value="<?php echo $module->getUrl("server/csv_download.php") ?>">
+                   value="<?php echo $module->getUrl("server/getDataFromServer.php") ?>">
 
             <!-- imitate other REDCap page headers -->
             <div class="row" >
@@ -123,6 +121,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         <button type="button" id="do_export" onclick="runQuery(false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="float:right"> <i class="fas fa-file-download"></i> Export Data</button>
                     </div>
 
+                    <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="longop-running" style="display: none;">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+
+
+
                     <div class =" ml-n2 mt-5" id="data-error">
                         <div id="data-error-message"></div>
                     </div>
@@ -151,8 +155,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             </div>
         </form>
     </div>
-
-    <div class="loader"><!-- Place at bottom of page --></div>
 
     </body>
 </html>

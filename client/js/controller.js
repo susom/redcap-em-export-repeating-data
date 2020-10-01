@@ -1,9 +1,8 @@
 
-
-
 function runQuery(preview) {
     var json = getExportJson(preview);
     clearError();
+    $("#longop-running").show();
     $.ajax({
         url: $("#report-submit").val(),
         data: json,
@@ -11,7 +10,7 @@ function runQuery(preview) {
         type: 'POST',
         dataType: 'json',
         success: function (response) {
-
+            $("#longop-running").hide();
             if (response.status === 0) {
                 showError("Error: " + response.message);
             } else {

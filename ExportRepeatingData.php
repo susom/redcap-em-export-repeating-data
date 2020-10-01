@@ -40,7 +40,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         try {
-            error_log("hello from the ExportRepeatingData constructor ". $_GET['pid']);
+
             if (isset($_GET['pid'])) {
 
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
@@ -208,15 +208,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $this->instrumentMetadata->instanceSelectLinked($key);
     }
 
-    /**
-     * convert json to SQL, then send back to the client as
-     * a streaming download file, so as not to run the browser
-     * out of memory for very large files
-     * @param array $config
-     */
-    public function exportToFile($config)
-    {
-    }
 
     /**
      * convert json to SQL, then send the data back to the client
