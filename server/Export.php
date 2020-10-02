@@ -64,13 +64,13 @@ class Export
                 }
             }
             $json->forms[$column->instrument]->fields[] = $column->field;
-            $found_record_identifier = ($column->field == $identifier_field);
+            $found_record_identifier = $found_record_identifier || ($column->field === $identifier_field);
         }
-        $module->emLog(print_r($identifier_field, TRUE));
+
         if (! $found_record_identifier) {
             $json->identifierField = $identifier_field;
             foreach ($json->forms as $instrument_name => $form) {
-                array_unshift($form->fields, 'record as '. $identifier_field);
+                array_unshift($form->fields, $instrument_name.'.record as '. $identifier_field);
                 break;
             }
 
@@ -119,7 +119,7 @@ class Export
             foreach ($form->fields as $field) {
                 $fields[] = $field;
                 $module->emDebug('substr 10 is '.substr( $field, 0, 10 ));
-                if (substr( $field, 0, 10 ) !== "record as ") {
+                if (!strpos( $field, ".record as " ) ) {
                     $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
                     $headers[] = $field;
                 } else {

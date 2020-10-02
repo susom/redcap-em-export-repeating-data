@@ -139,7 +139,7 @@ function convertToCSV(objArray) {
             if (array[i][index] && array[i][index].includes(",")) {
                 line += '"';
             }
-            line += array[i][index];
+            line += escape_doublquotes(array[i][index]);
             if (array[i][index] && array[i][index].includes(",")) {
                 line += '"';
             }
@@ -149,6 +149,11 @@ function convertToCSV(objArray) {
     }
 
     return str;
+}
+
+function escape_doublquotes(data) {
+    if (!data) return data;
+    return data.replace(/["]/g, '""');
 }
 
 function triggerDownload(data, filename, filetype) {
