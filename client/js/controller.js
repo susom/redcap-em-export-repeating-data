@@ -28,6 +28,7 @@ function runQuery(preview) {
 
         },
         error: function (request, error) {
+            $("#longop-running").hide();
             showError("Server Error: " + JSON.stringify(error));
         }
     });
