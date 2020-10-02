@@ -25,6 +25,8 @@ $instruments = REDCap::getInstrumentNames();
             <?php
             foreach ($instruments as $key => $instrument) {
             ?>
+            // this is the date field used for correlated joins
+            instrumentLookup["<?php echo $key ?>_@date"] = "<?php echo $module->getDateField($key) ?>";
             // this entry is used when a folder name is dropped into the columns panel
             instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
             //  this idempotent entry is actually used, when de-selecting all checkbox values
@@ -70,7 +72,7 @@ $instruments = REDCap::getInstrumentNames();
                 }
             }).sortable(
             {
-                sort: function()
+                update: function(event, ui)
                 {
                     // gets added unintentionally by droppable interacting with sortable
                     // using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
@@ -103,22 +105,17 @@ $instruments = REDCap::getInstrumentNames();
                         var checkBoxes = $( selector );
                         checkBoxes.prop("checked", true)
                     }
-//                    console.log(copy.text());
 
                     panelName = getInstrumentForField(copy.text());
-                    // console.log('panel name is...');
-                    // console.log(panelName);
-
                     var panelSelector = "#panel-"+panelName;
-                    // console.log('panelSelector');
-                    // console.log(panelSelector);
                     $( panelSelector  ).show();
-
+                    tagRepeatables();
                 }
             }).sortable(
             {
-                sort: function()
+                update: function(event, ui)
                 {
+                    tagRepeatables();
                     // gets added unintentionally by droppable interacting with sortable
                     // using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
                     $( this ).removeClass( "ui-state-default" );
@@ -155,6 +152,39 @@ $instruments = REDCap::getInstrumentNames();
         });
     }
 
+    function tagRepeatables() {
+        // use sort order to specify the status of repeatable forms
+        var firstRepeatingPanel = true;
+        var targetDate;
+        $(".panel:visible").each(function() {
+            if ($( this ).find(".repeating-primary").length !== 0) {
+                if (firstRepeatingPanel) {
+                    // hide secondary badge and show primary badge
+                    $(this).find(".repeating-primary").show();
+                    $(this).find(".repeating-secondary").hide();
+                    $(this).find(".panel-heading").addClass('tier-2');
+                    $(this).find(".panel-heading").removeClass('tier-3');
+                    $(this).find(".panel-heading").removeClass('tier-4');
+                    firstRepeatingPanel = false;
+                    instrumentName= $(this).attr('id').substr(6);
+                    targetDate = instrumentLookup[instrumentName + '_@date'];
+                } else {
+                    $(this).find(".repeating-primary").hide();
+                    $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
+                    var secondaryHeader = $(this).find(".repeating-secondary");
+                    secondaryHeader.show();
+                    var panelHeading = $(this).find(".panel-heading");
+                    panelHeading.removeClass('tier-2');
+                    if (panelHeading.hasClass('ref-tier-3')) {
+                        panelHeading.addClass('tier-3');
+                    } else {
+                        panelHeading.addClass('tier-4');
+                    }
+                }
+            }
+        });
+
+    }
     function appendFieldFilterControls  () {
         return '<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">\n' +
             '  <span aria-hidden="true">&times;</span>\n' +

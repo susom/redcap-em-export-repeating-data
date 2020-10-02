@@ -21,31 +21,38 @@ $instruments = REDCap::getInstrumentNames();
 ?>
 
 <?php
-$primaryTagged = FALSE;
+
+$primaryTag = "<span class='badge badge-info ml-5 repeating-primary'>Repeating: Primary/Anchor</span>";
 foreach ($instruments as $key => $instrument) {
     if ($module->isInstanceSelectLinked($key) == 1) {
         $cardinality = "tier-3";
-        $tag = "<span class='badge badge-primary ml-5'>Repeating; related to " . $module->instanceSelectLink($key)  . "</span>";
+        $tag = $primaryTag . "<span class='badge badge-primary ml-5 repeating-secondary'>Repeating; related to " . $module->instanceSelectLink($key)  . "</span>";
     } else if ($module->isRepeatingForm($key) == 1 ) {
-        if ($primaryTagged) {
-            $cardinality = "tier-4";
-            $tag = "<select name='<?php echo ?>' class='' style=';'>" .
-            "<option value='0'>Repeating: Primary</option><option value='1' selected>Repeating: Secondary</option>" .
-            "</select> if within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> after (days)";
+        $mydate = $module->getDateField($key);
+        if (! $mydate) {
+            $cardinality = "tier-error";
+            $tag = "<span class='badge badge-danger ml-5'>Configuration Error</span>";
         } else {
-            $primaryTagged = TRUE;
-            $cardinality = "tier-2";
-            $tag = "<span class='badge badge-info ml-5'>Repeating: Primary/Anchor</span>";
+            $cardinality = "tier-4";
+
+            $tag = $primaryTag . "<span class='badge badge-warning ml-5 repeating-secondary'>Repeating; Pivot & Filter</span>"
+                . "<div class='repeating-secondary'> if " . $mydate . " within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
         }
     } else {
         $cardinality = "tier-1";
         $tag = "<span class='badge badge-success ml-5'>Singleton</span>";
     }
-
+    // cardinality is used to set the panel heading background color
+    // tier-1 is easy, it's always green
+    // tier-2 however is situational
+    // tier-2 is dynamically applied to the first repeating form in the list
+    // however if you are not the first repeating form in the list, your native coloring is applied
+    // this native coloring is stashed below for future reference as class ref-tier-3 or ref-tier-4
+    // see drag_n_drop.php for the dynamic behaviors in javascript
 
     ?>
     <div style="display: none;" class=" ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
-        <div class="panel-heading <?php echo $cardinality?>">
+        <div class="panel-heading <?php echo $cardinality?> ref-<?php echo $cardinality?>">
             <label for="chb1" class="pr-1"><?php echo $instrument ?> </label><input type="checkbox"  id="<?php echo $key ?>"  >
             <?php echo $tag ?>
             <button type="button" class="delete-panel close pr-2" aria-label="Close">

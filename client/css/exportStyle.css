@@ -47,6 +47,10 @@
 }
 
 .tier-4 {
-    background-color: #ffddc3;
+    background-color: #ffe5d3;
+}
+
+.tier-error {
+    background-color: #ffafaf;
 }
 

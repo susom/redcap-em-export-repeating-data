@@ -1,5 +1,6 @@
 <?php
 // this php script generates Javascript specific to this project
+// to see what is produced, view source on the rendered page
 
 namespace Stanford\ExportRepeatingData;
 
