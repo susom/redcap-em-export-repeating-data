@@ -36,7 +36,7 @@ foreach ($instruments as $key => $instrument) {
             $cardinality = "tier-4";
 
             $tag = $primaryTag . "<span class='badge badge-warning ml-5 repeating-secondary'>Repeating; Pivot & Filter</span>"
-                . "<div class='repeating-secondary'> if " . $mydate . " within <input style='width:30px' type='text' maxlength='4'/> before and <input style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
+                . "<div class='repeating-secondary'> if " . $mydate . " within <input name='lower-bound-".$key."' style='width:30px' type='text' maxlength='4'/> before and <input name='upper-bound-".$key."' style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
         }
     } else {
         $cardinality = "tier-1";

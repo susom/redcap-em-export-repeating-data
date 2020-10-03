@@ -1,6 +1,12 @@
 
 function runQuery(preview) {
-    var json = getExportJson(preview);
+    var formdata = $("#export-repeating").serializeArray();
+
+    if (configurationError(formdata)) {
+        return;
+    }
+
+    var json = getExportJson(preview, formdata);
     clearError();
     $("#longop-running").show();
     $.ajax({
@@ -32,6 +38,26 @@ function runQuery(preview) {
             showError("Server Error: " + JSON.stringify(error));
         }
     });
+}
+
+function configurationError(formdata) {
+
+    var errorFound = false;
+    formdata.forEach(function (item, index) {
+        if ( (item.name.startsWith('lower-bound') || item.name.startsWith('upper-bound') ) ) {
+            if ( isNaN(item.value) === true) {
+                showError("non-numeric characters found in input string '" + item.value);
+                errorFound = true;
+            }
+        }
+    });
+
+    if ( $(".badge-danger:visible").length > 0) {
+        showError("Please ask your REDCap administrator to configure this project with @PRINCIPAL_DATE " +
+            "and/or @FORMINSTANCE action tags as per the <a href='https://github.com/susom/redcap-em-export-repeating-data'>documentation for this module</a>");
+        errorFound = true;
+    }
+    return errorFound;
 }
 
 function clearError() {
@@ -69,7 +95,7 @@ function saveExportJson() {
     triggerDownload(json, json.reportname + ".json", 'text/json;charset=utf-8;' )
 }
 
-function getExportJson(is_preview) {
+function getExportJson(is_preview, formdata) {
     var struct = {};
     struct.reportname = 'unnamed_report';
     var columns =[];
@@ -95,9 +121,10 @@ function getExportJson(is_preview) {
     //                 "param": "1",
     //                 "boolean": "AND"
     //             }
-    var formdata = $("#export-repeating").serializeArray();
+
     var filters = [];
     var filter;
+    var join = [];
 
     formdata.forEach(function (item, index) {
 
@@ -117,13 +144,44 @@ function getExportJson(is_preview) {
             if (item.value.length > 0) {
                 struct.reportname = item.value;
             }
+        } else if (item.name.startsWith('lower-bound')) {
+            instrument_name = item.name.substr(12);
+            if (! join[instrument_name]) {
+                join[instrument_name] = {};
+            }
+            join[instrument_name].lower_bound = item.value;
+        } else if (item.name.startsWith('upper-bound')) {
+            instrument_name = item.name.substr(12);
+            if (! join[instrument_name]) {
+                join[instrument_name] = {};
+            }
+            join[instrument_name].upper_bound = item.value;
+        }
+    });
+
+    // assemble the list of visible panels, in order, with their status
+    $(".panel:visible").each(function() {
+        instrument_name= $(this).attr('id').substr(6);
+        if (! join[instrument_name]) {
+            join[instrument_name] = {};
+        }
+        var panelHeading = $(this).find(".panel-heading");
+        if (panelHeading.hasClass('tier-1')) {
+            join[instrument_name].join = 'singleton'
+        } else if (panelHeading.hasClass('tier-2')) {
+            join[instrument_name].join = 'repeating-primary'
+        } else if (panelHeading.hasClass('tier-3')) {
+            join[instrument_name].join = 'repeating-instance-select'
+        } else if (panelHeading.hasClass('tier-4')) {
+            join[instrument_name].join = 'repeating-date-pivot'
         }
     });
     struct.preview = is_preview ;
     struct.project = "standard";
     struct.columns = columns;
     struct.filters = filters;
-    console.log(struct);
+    struct.join = join;
+    // console.log(struct);
     return struct;
 
 }

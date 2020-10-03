@@ -24,6 +24,8 @@ class Export
 
     function buildAndRunQuery($config)
     {
+//        global $module;
+//        $module->emDebug(print_r($config,TRUE));
         $newConfig = $this->assembleCardinality($config);
         $result = $this->runQuery($newConfig);
         return $result;
@@ -112,13 +114,11 @@ class Export
                 $primaryFormName = $form->form_name;
             }
 
-            $module->emDebug("Processing form " . $form->form_name);
-
             $formSql = ($primaryForm ? " ( select rd.record " : " ( select rd.record, rd.instance ");
 
             foreach ($form->fields as $field) {
                 $fields[] = $field;
-                $module->emDebug('substr 10 is '.substr( $field, 0, 10 ));
+
                 if (!strpos( $field, ".record as " ) ) {
                     $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
                     $headers[] = $field;
