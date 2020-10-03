@@ -14,8 +14,8 @@ $starttime = microtime(true);
 $module->emDebug("instruments_and_fields launching");
 // end debug setup part 1
 
-$dataDict = REDCap::getDataDictionary('array');
-$instruments = REDCap::getInstrumentNames();
+$dataDict = $module->getDataDictionary();
+$instruments = $module->getInstrumentNames();
 $event = $module->getFirstEventId();
 ?>
 <script>

@@ -12,8 +12,7 @@ $starttime = microtime(true);
 $module->emDebug("drag_n_drop launching");
 // end debug setup part 1
 
-$instruments = REDCap::getInstrumentNames();
-
+$instruments = $module->getInstrumentNames();
 ?>
 <script>
     var instrumentLookup;
@@ -33,7 +32,7 @@ $instruments = REDCap::getInstrumentNames();
             //    when a panel is hidden by clicking the x in the upper right
             instrumentLookup["<?php echo $key ?>"] = "<?php echo $key ?>";
             <?php
-            $fields = REDCap::getFieldNames($key);
+            $fields = $module->getFieldNames($key);
             foreach ($fields as $field) {
             ?>
             instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";

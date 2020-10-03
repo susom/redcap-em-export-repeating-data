@@ -23,6 +23,7 @@ class InstrumentMetadata
     private $dataDictionary;
     private $resultArray;
     private $isStandard;
+    private $instrumentFields;
 
     function __construct($pid, $dataDictionary)
     {
@@ -46,6 +47,23 @@ class InstrumentMetadata
             echo $e->getMessage();
             die();
         }
+    }
+
+    private function initInstrumentFields() {
+        $this->instrumentFields = [];
+         foreach ($this->dataDictionary as $key => $ddEntry) {
+             $this->instrumentFields[$ddEntry['form_name']] = $key;
+         }
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldNames($instrument) {
+        if (! isset($this->instrumentFields)) {
+            $this->initInstrumentFields();
+        }
+        return $this->instrumentFields[$instrument];
     }
 
     /**
