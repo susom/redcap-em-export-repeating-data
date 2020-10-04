@@ -95,7 +95,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getFieldNames($instrument) {
-
+        return $this->instrumentMetadata->getFieldNames($instrument);
     }
 
     /**

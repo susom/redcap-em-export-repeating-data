@@ -91,8 +91,9 @@ function tableize_col(col, index) {
 }
 
 function saveExportJson() {
-    var json = getExportJson(false);
-    triggerDownload(json, json.reportname + ".json", 'text/json;charset=utf-8;' )
+    var formdata = $("#export-repeating").serializeArray();
+    var json = getExportJson(false, formdata);
+    triggerDownload(JSON.stringify(json), json.reportname + ".json", 'text/json;charset=utf-8;' )
 }
 
 function getExportJson(is_preview, formdata) {
@@ -181,7 +182,7 @@ function getExportJson(is_preview, formdata) {
     struct.columns = columns;
     struct.filters = filters;
     struct.join = join;
-    // console.log(struct);
+
     return struct;
 
 }
@@ -232,3 +233,4 @@ function triggerDownload(data, filename, filetype) {
         }
     }
 }
+

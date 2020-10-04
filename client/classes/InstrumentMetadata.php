@@ -52,7 +52,10 @@ class InstrumentMetadata
     private function initInstrumentFields() {
         $this->instrumentFields = [];
          foreach ($this->dataDictionary as $key => $ddEntry) {
-             $this->instrumentFields[$ddEntry['form_name']] = $key;
+             if (!isset ($this->instrumentFields[$ddEntry['form_name'] . "_fields"])) {
+                 $this->instrumentFields[$ddEntry['form_name'] . "_fields"] = [];
+             }
+             $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $key;
          }
     }
 
@@ -63,7 +66,7 @@ class InstrumentMetadata
         if (! isset($this->instrumentFields)) {
             $this->initInstrumentFields();
         }
-        return $this->instrumentFields[$instrument];
+        return $this->instrumentFields[$instrument . "_fields"];
     }
 
     /**
