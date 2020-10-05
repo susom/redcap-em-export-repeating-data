@@ -2,7 +2,6 @@
 
 namespace Stanford\ExportRepeatingData;
 
-use \REDCap;
 use \Project;
 define('STANDARD', 'standard');
 define('LONGITUDINAL', 'longitudinal');
@@ -51,12 +50,19 @@ class InstrumentMetadata
 
     private function initInstrumentFields() {
         $this->instrumentFields = [];
-         foreach ($this->dataDictionary as $key => $ddEntry) {
-             if (!isset ($this->instrumentFields[$ddEntry['form_name'] . "_fields"])) {
-                 $this->instrumentFields[$ddEntry['form_name'] . "_fields"] = [];
-             }
-             $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $key;
-         }
+        foreach ($this->dataDictionary as $key => $ddEntry) {
+            if (!isset ($this->instrumentFields[$ddEntry['form_name'] . "_fields"])) {
+                $this->instrumentFields[$ddEntry['form_name'] . "_fields"] = [];
+                $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $ddEntry['form_name'] . "_complete";
+            }
+            $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $key;
+        }
+        // second pass: move the completion field to the end of each list
+        foreach ($this->instrumentFields as $key => $ddEntry) {
+            $completionField = array_shift($ddEntry);
+            $ddEntry[] =  $completionField;
+            $this->instrumentFields[$key] = $ddEntry;
+        }
     }
 
     /**
@@ -118,8 +124,27 @@ class InstrumentMetadata
     /**
      *
      */
+    public function hasChild($instrument)
+    {
+        if (! isset($this->resultArray)) {
+            $this->init();
+        }
+
+        foreach ($this->resultArray as $visiblekey => $visibleval) {
+                if ($this->resultArray[$visiblekey]['foreign_key_ref'] === $instrument) {
+                    $foundParent = $visiblekey;
+                    break;
+            }
+        }
+        return  $foundParent;
+    }
+
+    /**
+     *
+     */
     private function init()
     {
+        global $module;
         // look up whether this is a longitudinal or standard project
         $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
 
@@ -146,9 +171,13 @@ class InstrumentMetadata
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
             if (contains($ddEntry['field_annotation'],'@FORMINSTANCE')) {
-
-                $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['field_annotation']);
+                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['field_annotation']);
+                $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $parent_instrument;
                 $lookupTable[$ddEntry['form_name']]['foreign_key_field'] = $ddEntry['field_name'];
+                // add one more entry, indicating that the parent is linked to the child
+
+                $lookupTable[$parent_instrument]['children'][] = $ddEntry['form_name'];
+                $module->emDebug(print_r($lookupTable,TRUE));
 
             } else if (!isset($lookupTable[$ddEntry['form_name']]['foreign_key_ref'])) {
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = '';

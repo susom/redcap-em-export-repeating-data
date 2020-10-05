@@ -228,6 +228,11 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $this->instrumentMetadata->instanceSelectLinked($key);
     }
 
+    public function hasChild($instrument )
+    {
+        return $this->instrumentMetadata->hasChild( $instrument);
+    }
+
 
     /**
      * convert json to SQL, then send the data back to the client

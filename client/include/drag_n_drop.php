@@ -4,7 +4,7 @@
 namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
-use \REDCap;
+
 // something is taking a while to load. is this it?
 // start debug setup part 1
 // microtime(true) returns the unix timestamp plus milliseconds as a float
@@ -69,14 +69,6 @@ $instruments = $module->getInstrumentNames();
                     appendInputs($copy); // and call a REDCap API to decorate with suitable controls
                     $copy.appendTo(this);
                 }
-            }).sortable(
-            {
-                update: function(event, ui)
-                {
-                    // gets added unintentionally by droppable interacting with sortable
-                    // using connectWithSortable fixes this, but doesn't allow you to customize active/hoverClass options
-                    $( this ).removeClass( "ui-state-default" );
-                }
             });
 
         // this is the column specification target
@@ -107,6 +99,7 @@ $instruments = $module->getInstrumentNames();
 
                     panelName = getInstrumentForField(copy.text());
                     var panelSelector = "#panel-"+panelName;
+
                     $( panelSelector  ).show();
                     tagRepeatables();
                 }
@@ -124,7 +117,10 @@ $instruments = $module->getInstrumentNames();
         $(document).on('click', '.delete-panel', function () {
             $(this).closest('.panel').hide();
             // the id of the outer panel is the instrument name prefixed with 'panel-' e.g. panel-person, panel-med etc
-            tickAllPanelCheckboxes ($(this).closest('.panel').attr('id').substr(6), false);
+            instrumentName = $(this).closest('.panel').attr('id').substr(6);
+            tickAllPanelCheckboxes (instrumentName, false);
+            $("#upper-bound-" + instrumentName).val("");
+            $("#lower-bound-" + instrumentName).val("");
         });
 
         $(document).on('click', '.delete-criteria', function () {
@@ -140,8 +136,7 @@ $instruments = $module->getInstrumentNames();
             data: {field_name: fieldname, redcap_csrf_token: $("#redcap_csrf_token").val()},
             type: 'POST',
             success: function (data) {
-                data = '<input type="hidden" name="instrument" value="'+getInstrumentForField(fieldname)+'"/>'
-                    + '<input type="hidden" name="field_name" value="'+fieldname+'"/>'
+                data = '<input type="hidden" name="field_name" value="'+fieldname+'"/>'
                     + data + appendFieldFilterControls();
                 element.append(data);
             },
@@ -153,31 +148,66 @@ $instruments = $module->getInstrumentNames();
 
     function tagRepeatables() {
         // use sort order to specify the status of repeatable forms
+        // scan the list for an instantiation of the referenced table
+        // only use tier-2 if the referenced table is present in the list
+        // otherwise use tier-3
+
         var firstRepeatingPanel = true;
         var targetDate;
+        var repeatingForms = [];
+        // set the appropriate classes for panel heading coloring and show/hide the correct badge
         $(".panel:visible").each(function() {
+            instrumentName= $(this).attr('id').substr(6);
+
             if ($( this ).find(".repeating-primary").length !== 0) {
+                repeatingForms.push(instrumentName);
+
                 if (firstRepeatingPanel) {
                     // hide secondary badge and show primary badge
                     $(this).find(".repeating-primary").show();
                     $(this).find(".repeating-secondary").hide();
-                    $(this).find(".panel-heading").addClass('tier-2');
+                    $(this).find(".repeating-tertiary").hide();
+                    $(this).find(".panel-heading").addClass('tier-1');
+                    $(this).find(".panel-heading").removeClass('tier-2');
                     $(this).find(".panel-heading").removeClass('tier-3');
-                    $(this).find(".panel-heading").removeClass('tier-4');
                     firstRepeatingPanel = false;
-                    instrumentName= $(this).attr('id').substr(6);
-                    targetDate = instrumentLookup[instrumentName + '_@date'];
+
+                    targetDate = getInstrumentForField(instrumentName + '_@date');
                 } else {
+
                     $(this).find(".repeating-primary").hide();
                     $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                     var secondaryHeader = $(this).find(".repeating-secondary");
+                    var tertiaryHeader = $(this).find(".repeating-tertiary");
                     secondaryHeader.show();
                     var panelHeading = $(this).find(".panel-heading");
-                    panelHeading.removeClass('tier-2');
-                    if (panelHeading.hasClass('ref-tier-3')) {
-                        panelHeading.addClass('tier-3');
+                    panelHeading.removeClass('tier-1');
+                    if (panelHeading.hasClass('ref-tier-2')) {
+                        // look for the instance linked panel; only tag as tier-3 if present
+                        var badge = $(this).find(".badge-primary");
+                        var linkedToInstrument = badge.text().substr(22);
+                        // console.log(instrumentName + ' linked to '+ linkedToInstrument);
+                        // sigh. "linkedToInstrument in repeatingForms" should work but does not
+                        // so do it the hard way
+                        linkedInstrumentFound  = false;
+                        for (let i = 0; i < repeatingForms.length; i++) {
+                            linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i] === linkedToInstrument
+                        }
+
+                        if (linkedInstrumentFound) {
+                            secondaryHeader.show();
+                            panelHeading.addClass('tier-2');
+                            tertiaryHeader.hide();
+                            panelHeading.removeClass('tier-3');
+                        } else {
+                            tertiaryHeader.show();
+                            panelHeading.addClass('tier-3');
+                            secondaryHeader.hide();
+                            panelHeading.removeClass('tier-2');
+                        }
                     } else {
-                        panelHeading.addClass('tier-4');
+                        panelHeading.addClass('tier-3');
+                        tertiaryHeader.show();
                     }
                 }
             }
@@ -198,6 +228,8 @@ $instruments = $module->getInstrumentNames();
         checkBoxes = $( selector2 );
         checkBoxes.prop("checked", value);
     }
+
+
 </script>
 <?php
 // start debug setup part 2

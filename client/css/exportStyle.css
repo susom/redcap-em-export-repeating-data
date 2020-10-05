@@ -34,23 +34,39 @@
     padding: 5pt 0pt 0 10pt;
 }
 
-.tier-1 {
+.tier-0 {
     background-color: #daf1c4;
 }
 
-.tier-2 {
+.tier-1 {
     background-color: #c7ecf1;
 }
 
-.tier-3 {
+.tier-2 {
     background-color: #d2eafc;
 }
 
-.tier-4 {
+.tier-3 {
     background-color: #ffe5d3;
 }
 
 .tier-error {
     background-color: #ffafaf;
 }
-
+/* drag n drop file upload for settings restoration */
+table#holder {
+    border: 5px dashed #CCC;
+    width:400px;
+    font-family:Verdana;
+}
+table#holder tr:first-child {
+    height:50px;
+    text-align:center;
+}
+table#holder tr:last-child {
+    height:300px;
+    line-height: 50px;
+}
+table#holder li img {
+    height: 30px;
+}

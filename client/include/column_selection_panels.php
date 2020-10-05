@@ -7,7 +7,7 @@
 namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
-use \REDCap;
+
 // something is taking a while to load. is this it?
 // start debug setup part 1
 // microtime(true) returns the unix timestamp plus milliseconds as a float
@@ -24,36 +24,39 @@ $instruments = $module->getInstrumentNames();
 
 $primaryTag = "<span class='badge badge-info ml-5 repeating-primary'>Repeating: Primary/Anchor</span>";
 foreach ($instruments as $key => $instrument) {
-    if ($module->isInstanceSelectLinked($key) == 1) {
-        $cardinality = "tier-3";
-        $tag = $primaryTag . "<span class='badge badge-primary ml-5 repeating-secondary'>Repeating; related to " . $module->instanceSelectLink($key)  . "</span>";
-    } else if ($module->isRepeatingForm($key) == 1 ) {
+    if ($module->isRepeatingForm($key) == 1 ) {
         $mydate = $module->getDateField($key);
-        if (! $mydate) {
+        if ( $module->instanceSelectLink($key)   || $module->hasChild($key)) {
+            $secondaryTag = "<span class='badge badge-primary ml-5 repeating-secondary'>Repeating; related to "
+                . ($module->instanceSelectLink($key) ? $module->instanceSelectLink($key) : $module->hasChild($key)) . "</span>";
+        } else {
+            $secondaryTag = "";
+        }
+        $tertiaryTag = "<span class='badge badge-warning ml-5 repeating-tertiary'>Repeating; Pivot & Filter</span><div class='repeating-tertiary'> closest " . $mydate . " within <input id='lower-bound-".$key."' name='lower-bound-".$key."' style='width:30px' type='text' maxlength='4'/> before and <input id='upper-bound-".$key."' name='upper-bound-".$key."' style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
+        // these are the static defaults; they get rewritten dynamically
+        if (! $mydate && $module->isInstanceSelectLinked($key) == 0) {
             $cardinality = "tier-error";
             $tag = "<span class='badge badge-danger ml-5'>Configuration Error</span>";
         } else {
-            $cardinality = "tier-4";
-
-            $tag = $primaryTag . "<span class='badge badge-warning ml-5 repeating-secondary'>Repeating; Pivot & Filter</span>"
-                . "<div class='repeating-secondary'> if " . $mydate . " within <input name='lower-bound-".$key."' style='width:30px' type='text' maxlength='4'/> before and <input name='upper-bound-".$key."' style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
+            $cardinality = "tier-2";
+            $tag = $primaryTag . $secondaryTag . $tertiaryTag;
         }
     } else {
-        $cardinality = "tier-1";
+        $cardinality = "tier-0";
         $tag = "<span class='badge badge-success ml-5'>Singleton</span>";
     }
     // cardinality is used to set the panel heading background color
-    // tier-1 is easy, it's always green
-    // tier-2 however is situational
-    // tier-2 is dynamically applied to the first repeating form in the list
+    // tier-0 is easy, it's always green
+    // tier-1 however is situational
+    // tier-1 is dynamically applied to the first repeating form in the list
     // however if you are not the first repeating form in the list, your native coloring is applied
-    // this native coloring is stashed below for future reference as class ref-tier-3 or ref-tier-4
+    // this native coloring is stashed below for future reference as class ref-tier-2 or ref-tier-3
     // see drag_n_drop.php for the dynamic behaviors in javascript
 
     ?>
     <div style="display: none;" class=" ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
         <div class="panel-heading <?php echo $cardinality?> ref-<?php echo $cardinality?>">
-            <label for="chb1" class="pr-1"><?php echo $instrument ?> </label><input type="checkbox"  id="<?php echo $key ?>"  >
+            <label for="chb1" class="pr-1"><?php echo $instrument ?> <input type="checkbox"  id="<?php echo $key ?>"  ></label>
             <?php echo $tag ?>
             <button type="button" class="delete-panel close pr-2" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
@@ -62,7 +65,7 @@ foreach ($instruments as $key => $instrument) {
         <div class="panel-body">
             <div class="row">
                 <?php
-                $fields = REDCap::getFieldNames($key);
+                $fields = $module->getFieldNames($key);
                 foreach ($fields as $field) {
                     if ($dataDict[$field]['field_type'] === 'descriptive') {
                         continue;
@@ -70,7 +73,7 @@ foreach ($instruments as $key => $instrument) {
                     ?>
 
                     <div class="col-md-3 cbox-panel">
-                        <label for="chb2" class="pr-1"><?php echo $field ?> </label><input type="checkbox"  id="<?php echo $field ?>"  class="column-selector <?php echo $key ?>" >
+                        <label for="chb2" class="pr-1"><?php echo $field ?> <input type="checkbox"  id="<?php echo $field ?>"  class="column-selector <?php echo $key ?>" ></label>
                     </div>
                     <?php
                 }

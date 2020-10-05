@@ -1,3 +1,67 @@
+$(function () {
+    // drag n drop file upload for UI settings restore from save file
+    $('#holder').on({
+        'dragover dragenter': function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        },
+        'drop': function(e) {
+            //console.log(e.originalEvent instanceof DragEvent);
+            var dataTransfer =  e.originalEvent.dataTransfer;
+            if( dataTransfer && dataTransfer.files.length) {
+                e.preventDefault();
+                e.stopPropagation();
+                $.each( dataTransfer.files, function(i, file) {
+                    var reader = new FileReader();
+                    reader.onload = $.proxy(function(file, $fileList, event) {
+                        try {
+                            clearError();
+                            applyModel(JSON.parse(reader.result));
+                        } catch(e) {
+                            console.log(e);
+                            showError("Unrecognized file type. To restore settings, select a file previously saved by clicking 'Save Settings'");
+                        }
+                    }, this, file, $("#fileList"));
+                    reader.readAsText(file);
+
+                });
+            }
+            $("#dialog").dialog('close');
+        }
+    });
+});
+
+function applyModel(model) {
+    if( !model.hasOwnProperty('reportname')) {
+        showError("Unrecognized file type. To restore settings, please select a file previously saved by clicking 'Save Settings'");
+        return;
+    }
+    $("#report_name").val(model.reportname)
+    values = model['columns'];
+    if (values.length > 0) {
+        $( "#tip_missing_col_1" ).remove();
+        $( "#tip_missing_col_2" ).remove();
+
+    }
+    for (var i = 0; i < values.length; i++) {
+        $("#panel-" + values[i].instrument).show();
+        $("#" + values[i].instrument).prop("checked", true);
+        $("#" + values[i].field).prop("checked", true);
+    }
+    tagRepeatables();
+    values = model['filters'];
+    if (values.length > 0) {
+        $( "#tip_exporting_all_rows" ).remove();
+    }
+    for ( i=0; i < values.length; i++) {
+        console.log(values[i]);
+    }
+}
+
+function applyValdtn(uiElement) {
+    // seems to be required by REDCap in the filter fields
+    return true;
+}
 
 function runQuery(preview) {
     var formdata = $("#export-repeating").serializeArray();
@@ -8,6 +72,10 @@ function runQuery(preview) {
 
     var json = getExportJson(preview, formdata);
     clearError();
+    if (json.columns.length === 0) {
+        showError("You must drag at least one field from the list on the left and drop it into the 'Specify Report Columns' box above. ");
+        return;
+    }
     $("#longop-running").show();
     $.ajax({
         url: $("#report-submit").val(),
@@ -38,6 +106,16 @@ function runQuery(preview) {
             showError("Server Error: " + JSON.stringify(error));
         }
     });
+}
+
+function promptForUpload() {
+    $( "#dialog" ).dialog({
+        resizable: false,
+        height: "auto",
+        width: 430,
+        modal: true
+    });
+    $( "#dialog" ).show();
 }
 
 function configurationError(formdata) {
@@ -125,14 +203,14 @@ function getExportJson(is_preview, formdata) {
 
     var filters = [];
     var filter;
-    var join = [];
+    var joins = [];
+    var join;
+    var cardinality = [];
 
     formdata.forEach(function (item, index) {
 
-        if (item.name === 'instrument') {
+        if (item.name === 'field_name') {
             filter = {};
-            filter.instrument = item.value;
-        } else if (item.name === 'field_name') {
             filter.field = item.value;
         } else if (item.name === 'limiter_operator[]') {
             filter.operator = item.value;
@@ -140,49 +218,55 @@ function getExportJson(is_preview, formdata) {
             filter.param = item.value;
         } else if (item.name === 'limiter_connector[]') {
             filter.boolean = item.value;
+            console.log('looking up instrument for');
+            console.log(filter.field);
+            console.log(getInstrumentForField(filter.field));
+            filter.instrument = getInstrumentForField(filter.field);
             filters.push(Object.assign({}, filter));
         } else if (item.name === 'report_name') {
             if (item.value.length > 0) {
                 struct.reportname = item.value;
             }
         } else if (item.name.startsWith('lower-bound')) {
-            instrument_name = item.name.substr(12);
-            if (! join[instrument_name]) {
-                join[instrument_name] = {};
-            }
-            join[instrument_name].lower_bound = item.value;
+            join = {};
+            join.instrument_name = item.name.substr(12);
+            join.lower_bound = item.value;
         } else if (item.name.startsWith('upper-bound')) {
-            instrument_name = item.name.substr(12);
-            if (! join[instrument_name]) {
-                join[instrument_name] = {};
-            }
-            join[instrument_name].upper_bound = item.value;
+            join.upper_bound = item.value;
+            joins[join.instrument_name] = (Object.assign({}, join));
         }
     });
 
     // assemble the list of visible panels, in order, with their status
     $(".panel:visible").each(function() {
+        join = {};
         instrument_name= $(this).attr('id').substr(6);
-        if (! join[instrument_name]) {
-            join[instrument_name] = {};
-        }
+
         var panelHeading = $(this).find(".panel-heading");
-        if (panelHeading.hasClass('tier-1')) {
-            join[instrument_name].join = 'singleton'
+        if (panelHeading.hasClass('tier-0')) {
+            join.join = 'singleton'
+        } else if (panelHeading.hasClass('tier-1')) {
+            join.join = 'repeating-primary'
         } else if (panelHeading.hasClass('tier-2')) {
-            join[instrument_name].join = 'repeating-primary'
+            join.join = 'repeating-instance-select'
         } else if (panelHeading.hasClass('tier-3')) {
-            join[instrument_name].join = 'repeating-instance-select'
-        } else if (panelHeading.hasClass('tier-4')) {
-            join[instrument_name].join = 'repeating-date-pivot'
+            join.join = 'repeating-date-pivot'
+        }
+
+        cardinality[instrument_name] = Object.assign({}, join);
+        if (join.join !== 'singleton') {
+            cardinality[instrument_name].upper_bound = joins[instrument_name].upper_bound;
+            cardinality[instrument_name].lower_bound = joins[instrument_name].lower_bound;
         }
     });
+
+
     struct.preview = is_preview ;
     struct.project = "standard";
     struct.columns = columns;
     struct.filters = filters;
-    struct.join = join;
-
+    struct.cardinality = Object.assign({}, cardinality);
+    console.log(struct);
     return struct;
 
 }
@@ -216,6 +300,8 @@ function escape_doublquotes(data) {
 }
 
 function triggerDownload(data, filename, filetype) {
+    console.log('stringified version');
+    console.log(data);
     var blob = new Blob([ data ], {type: filetype});
     if (navigator.msSaveBlob) { // IE 10+
         navigator.msSaveBlob(blob, filename );

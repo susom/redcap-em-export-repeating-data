@@ -59,18 +59,28 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 </div>
             </div>
 
+            <div  id="dialog" title="Restore Settings" style="display:none">
+                <table id="holder">
+                    <tr>
+                        <td>Drop files here</td>
+                    </tr>
+                    <tr>
+                        <td><ul id="fileList"></ul></td>
+                    </tr>
+                </table>
+            </div>
             <!-- prompt for a report name used to save and restore report settings -->
             <div class="row" style="padding-right: 15px;">
 
-                <div class="col-md-8  cardinal emphatic header nowrap text-left " style="min-width:200px">
+                <div class="col-md-8 col-sm-6  cardinal emphatic header nowrap text-left " style="min-width:200px">
                     <span>Report Name:   <input type="text" id="report_name"  name="report_name" size="40"/></span>
 
                 </div>
-                <div class="col-md-2 cardinal emphatic header nowrap text-left">
+                <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-left">
                     <button type="button"  onclick="saveExportJson()" id="save_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Save Settings</button>
                 </div>
-                <div class="col-md-2 cardinal emphatic header nowrap text-left">
-                    <button type="button" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>
+                <div class="col-md-2  col-sm-3 cardinal emphatic header nowrap text-left">
+                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Restore Settings</button>
                 </div>
             </div>
 

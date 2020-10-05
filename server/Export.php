@@ -37,11 +37,22 @@ class Export
         $json_inp = json_decode(json_encode($config));
         $json = json_decode('{ "forms" : []}');
 
+        // look through the incoming spec for the primary-repeating form, since that will be the join key
+        // used by any repeating-date-pivot references. There can be only one...
+        foreach($json_inp->cardinality as $instrument => $value) {
+            if ($value->join === 'repeating-primary') {
+                $primaryJoinInstrument = $instrument;
+                $meta = $this->instrumentMetadata->isRepeating($instrument);
+                $primaryJoinField = $meta['principal_date'];
+                break;
+            }
+        }
+        $module->emDebug('$json_inp is '.print_r($json_inp,TRUE));
         //  if record_id is missing, add it. Every report needs the record_id
         // look up name of record_id
         foreach ($this->Proj->metadata as $identifier_field => $firstRecord) {
-            $identifier_form = $firstRecord['form_name'];
             break;
+            // $identifier_field is now correctly set. it is referenced below
         }
         // $record_identifier now contains 'record_id' or whatever the first field is named
         // now look for it in the first pass
@@ -51,22 +62,32 @@ class Export
         $json->preview = $json_inp->preview ;  // $config['preview'];
 
         foreach ($json_inp->columns as $column) {
-
-            if (!isset($json->forms[$column->instrument])) {
-                $json->forms[$column->instrument] = json_decode('{ "fields" : [] }');
-                $json->forms[$column->instrument]->form_name = $column->instrument;
+            $instrument = $column->instrument;
+            if (!isset($json->forms[$instrument])) {
+                $json->forms[$instrument] = json_decode('{ "fields" : [] }');
+                $json->forms[$instrument]->form_name = $column->instrument;
                                 
                 $meta = $this->instrumentMetadata->isRepeating($column->instrument);
-                $json->forms[$column->instrument]->cardinality = json_decode('{}') ;
-                $json->forms[$column->instrument]->cardinality->cardinality = $meta['cardinality'];
-                if ( isset($meta['foreign_key_ref']) && strlen($meta['foreign_key_ref']) > 0)  {
-                    $json->forms[$column->instrument]->cardinality->join_type = 'instance' ;
-                    $json->forms[$column->instrument]->cardinality->foreign_key_ref = $meta['foreign_key_ref'] ;
-                    $json->forms[$column->instrument]->cardinality->foreign_key_field = $meta['foreign_key_field'] ;
+                $json->forms[$instrument]->cardinality = $meta['cardinality'];
+                $joinType = $json_inp->cardinality->$instrument->join;
+                $json->forms[$instrument]->join_type = $joinType ;
+                if ( $joinType == 'repeating-instance-select')  {
+                    $json->forms[$instrument]->join_type = 'instance';
+                    $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'] ;
+                    $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'] ;
+                } else if (  $joinType == 'repeating-date-pivot') {
+                    $json->forms[$instrument]->join_type = 'date_proximity';
+                    $json->forms[$instrument]->foreign_key_ref = $primaryJoinInstrument ;
+                    $json->forms[$instrument]->foreign_key_field = $primaryJoinField ;
+                    $json->forms[$instrument]->param1 = $json_inp->cardinality->$instrument->lower_bound;
+                    $json->forms[$instrument]->param2 = $json_inp->cardinality->$instrument->upper_bound;
                 }
             }
             $json->forms[$column->instrument]->fields[] = $column->field;
             $found_record_identifier = $found_record_identifier || ($column->field === $identifier_field);
+            if (! $found_record_identifier) {
+                $json->record_id = $identifier_field;
+            }
         }
 
         $json->filters = $json_inp->filters ;
@@ -85,6 +106,60 @@ class Export
 
     /*
      * use the transformed specification to build and execute the SQL
+     e.g.
+    [forms] => Array
+        (
+            [visit] => stdClass Object
+                (
+                    [fields] => Array
+                        (
+                            [0] => visit_date
+                            [1] => visit_type
+                        )
+
+                    [form_name] => visit
+                    [cardinality] => repeating
+                    [join_type] => repeating-primary
+                )
+
+            [meds] => stdClass Object
+                (
+                    [fields] => Array
+                        (
+                            [0] => medication
+                            [1] => route
+                        )
+
+                    [form_name] => meds
+                    [cardinality] => repeating
+                    [join_type] => instance
+                    [foreign_key_ref] => visit
+                    [foreign_key_field] => med_visit_instance
+                )
+
+            [pft] => stdClass Object
+                (
+                    [fields] => Array
+                        (
+                            [0] => pft_test_date
+                            [1] => pft_test_result
+                        )
+
+                    [form_name] => pft
+                    [cardinality] => repeating
+                    [join_type] => date_proximity
+                    [foreign_key_ref] => visit
+                    [foreign_key_field] => visit_date
+                    [param1] => 2
+                    [param2] => 10
+                )
+
+        )
+
+        [preview] => true
+        [record_id] => record_id
+        [filters] =>
+    )
     */
     function runQuery($json)
     {
@@ -94,36 +169,30 @@ class Export
         $select = "" ;
         $from = "" ;
         $fields = array() ;
-        $recordFieldIncluded = false ;
-        
-        $primaryForm = false ;
+        $recordFieldIncluded = ! isset($json->record_id) ;
+        $module->emDebug('is record_id included? ' . $recordFieldIncluded . ' ' . $json->record_id);
         $primaryFormName = "" ;
         
         foreach ($json->forms as $form) {
-        
+
             $primaryForm = ($from == "") ;
             if ($primaryForm) {
                 $primaryFormName = $form->form_name ;
             }
         
-            if (!$recordFieldIncluded)
-                $recordFieldIncluded = in_array("record_id", $form->fields) ;
-        
-            // echo "Processing form " . $form->form_name . "<br>" ;
-        
-            $formSql = (($form->cardinality->cardinality == 'singleton') ? " ( select rd.record " : " ( select rd.record, COALESCE(rd.instance, '1') instance ") ;
+            $formSql = (($form->cardinality == 'singleton') ? " ( select rd.record " : " ( select rd.record, COALESCE(rd.instance, '1') instance ") ;
         
             foreach($form->fields as $field) {
                 $fields[] = $field ;
                 $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
             }
-                        
+
             if (isset($form->cardinality))
             {
                 $cardinality = $form->cardinality ;
 
-                if (isset($cardinality->join_type) && $cardinality->join_type == "date_proximity") {
-                    $formsql =  "Select " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $cardinality->foreign_key_ref . "_instance" . 
+                if ($form->join_type == "date_proximity") {
+                    $formsql =  "Select " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $form->foreign_key_ref . "_instance" .
                             "From " .
                             $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
                             "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
@@ -131,19 +200,19 @@ class Export
                             "  (select m.record, m.instance ". $form->form_name . "_instance, " .
                             "    (select COALESCE (rd.instance, 1) " .
                             "	from redcap_data rd " .
-                            "	where rd.record = m.record and rd.field_name = '" . $cardinality->foreign_key_field . "' and rd.project_id  = " . $project_name . " " .
-                            "	order by abs(datediff(m." . $cardinality->join_field . ", rd.value)) asc " . 
+                            "	where rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
+                            "	order by abs(datediff(m." . $form->join_field . ", rd.value)) asc " .
                             "	limit 1 " . 
-                            ") as " . $cardinality->foreign_key_ref . "_instance " .
-                            "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as " . $cardinality->join_field . " " .
-                               "	  from redcap_data rd where rd.project_id  = " . $project_id . " and rd.field_name  = '" . $cardinality->join_field . "'  " .
+                            ") as " . $form->foreign_key_ref . "_instance " .
+                            "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as " . $form->join_field . " " .
+                               "	  from redcap_data rd where rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->join_field . "'  " .
                                "	) m " . 
                             ") " . $form->form_name . "._dproxy " .
                             "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 
                             $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record "  ;
                             ") " . $form.form_name . " " .
                             "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " . 
-                            $form->form_name . "." . $cardinality->foreign_key_ref . "_instance = " . $cardinality->foreign_key_ref . ".instance ) " ;
+                            $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
 
                     $formSql = $formSql . ") " . $form->form_name ;
 
@@ -155,7 +224,7 @@ class Export
             
                 } else {
             
-                    if ($cardinality->cardinality == "singleton") {
+                    if ($cardinality == "singleton") {
                         $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
                                 "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
                                 "GROUP BY rd.record" ;
@@ -172,11 +241,11 @@ class Export
                     } else {
                         $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  " ;
                         
-                        if (isset($form->cardinality->join_type)) {
-                            if ($form->cardinality->join_type == "instance") { 
-                                $form->join_condition = $cardinality->foreign_key_field . " = " . $cardinality->foreign_key_ref . ".instance" ;
-                            } elseif ($form->cardinality->join_type == "foreign_key") { 
-                                $form->join_condition = $cardinality->join_field . " = " . $cardinality->foreign_key_ref . "." . $cardinality->foreign_key_field ;
+                        if (isset($form->join_type)) {
+                            if ($form->join_type == "instance") {
+                                $form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance" ;
+                            } elseif ($form->join_type == "date_proximity") {
+                                $form->join_condition = $form->join_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field ;
                             }    
                         }
 
@@ -195,12 +264,12 @@ class Export
             }            
         }
 
-        // IF record_id is not chosen add it to the SQL 
+        // If record_id is not chosen add it to the SQL
         if ($recordFieldIncluded)
             $sql = "Select " . $select . " " . $from ;
         else {
-            $sql = "Select record as record_id, " . $select . " " . $from ;
-            array_unshift($fields, "record_id") ;   // add record_id as the first field in the fields array
+            $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
+            array_unshift($fields, $json->record_id) ;   // add record_id as the first field in the fields array
         }
         
         

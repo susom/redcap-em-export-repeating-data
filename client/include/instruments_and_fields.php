@@ -5,7 +5,7 @@
 namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
-use \REDCap;
+
 
 // something is taking a while to load. is this it?
 // start debug setup part 1
@@ -49,7 +49,7 @@ $event = $module->getFirstEventId();
                 icon: "fa fa-file-alt",
                 nodes: [
                     <?php
-                    $fields = REDCap::getFieldNames($key);
+                    $fields = $module->getFieldNames($key);
                     $first_time_through_fields = true;
                     foreach ($fields as $field) {
                     if ($dataDict[$field]['field_type'] === 'descriptive') {
