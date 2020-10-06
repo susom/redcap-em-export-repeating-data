@@ -73,8 +73,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             <div class="row" style="padding-right: 15px;">
 
                 <div class="col-md-8 col-sm-6  cardinal emphatic header nowrap text-left " style="min-width:200px">
-                    <span>Report Name:   <input type="text" id="report_name"  name="report_name" size="40"/></span>
-
+                    <span>Report Name:   <input type="text" id="report_name"  name="report_name" size="40"/><select class="ml-3 mb-1 jqbuttonmed  ui-corner-all " name="raw_or_label" id="raw_or_label"><option value="label">Labels</option><option value="raw">Raw Data</option></select></span>
                 </div>
                 <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-left">
                     <button type="button"  onclick="saveExportJson()" id="save_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Save Settings</button>

@@ -237,6 +237,8 @@ function getExportJson(is_preview, formdata) {
         } else if (item.name.startsWith('upper-bound')) {
             join.upper_bound = item.value;
             joins[join.instrument_name] = (Object.assign({}, join));
+        } else if (item.name.startsWith('raw_or_label')) {
+            struct.raw_or_label = item.value;
         }
     });
 

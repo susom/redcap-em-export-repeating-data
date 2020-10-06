@@ -34,7 +34,7 @@ class Export
         // oddly enough this operation is not idempotent. the incoming arrays get converted into objects
         $json_inp = json_decode(json_encode($config));
         $json = json_decode('{ "forms" : []}');
-
+        $json->raw_or_label = $json_inp->raw_or_label;
         // look through the incoming spec for the primary-repeating form, since that will be the join key
         // used by any repeating-date-pivot references. There can be only one...
         foreach($json_inp->cardinality as $instrument => $value) {
@@ -168,7 +168,11 @@ class Export
         if (! isset($rowLimit)) {
             $rowLimit = 200;
         }
-
+        if ($json->raw_or_label == "label") {
+            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ','))), '\\\\n',1), rd.value)";
+        } else {
+            $valSel = "rd.value";
+        }
         $project_id = $this->Proj->project_id;
         $select = "" ;
         $from = "" ;
@@ -193,7 +197,7 @@ class Export
             // Converting redcap_data into a view format for each selected fields
             foreach($form->fields as $field) {
                 $fields[] = $field ;
-                $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
+                $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then $valSel end) " . $field . " ";
             }
             
             // date proximity is a very special case - this is the first try - not sure about the performace yet
@@ -206,15 +210,15 @@ class Export
                         "GROUP BY rd.record, rd.instance ) " . $form->form_name . "_int, " .
                         "  (select m.record, m.instance ". $form->form_name . "_instance, " .
                         "    (select COALESCE (rd.instance, 1) " .
-                        "	from redcap_data rd " .
-                        "	where rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
-                        "   and datediff(rd.value, m." . $form->primary_date_field . ") <= " . $form->lower_bound . " " .
-                        "   and datediff(m. " . $form->primary_date_field . ", rd.value) <= " . $form->upper_bound . " " .
-                        "	order by abs(datediff(m." . $form->primary_date_field . ", rd.value)) asc " . 
+                        "	from redcap_data rd, redcap_metadata rm " .
+                        "	where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
+                        "   and datediff($valSel, m." . $form->primary_date_field . ") <= " . $form->lower_bound . " " .
+                        "   and datediff(m. " . $form->primary_date_field . ", $valSel) <= " . $form->upper_bound . " " .
+                        "	order by abs(datediff(m." . $form->primary_date_field . ", $valSel)) asc " .
                         "	limit 1 " . 
                         ") as " . $form->foreign_key_ref . "_instance " .
-                        "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as " . $form->primary_date_field . " " .
-                            "	  from redcap_data rd where rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->primary_date_field . "'  " .
+                        "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, $valSel as " . $form->primary_date_field . " " .
+                            "	  from redcap_data rd, redcap_metadata rm where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->primary_date_field . "'  " .
                             "	) m " . 
                         ") " . $form->form_name . "_dproxy " .
                         "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 

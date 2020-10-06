@@ -125,6 +125,7 @@ $instruments = $module->getInstrumentNames();
             tickAllPanelCheckboxes (instrumentName, false);
             $("#upper-bound-" + instrumentName).val("");
             $("#lower-bound-" + instrumentName).val("");
+            tagRepeatables();
         });
 
         $(document).on('click', '.delete-criteria', function () {
