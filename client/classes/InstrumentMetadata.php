@@ -23,6 +23,7 @@ class InstrumentMetadata
     private $resultArray;
     private $isStandard;
     private $instrumentFields;
+    private $instrumentNames;
 
     function __construct($pid, $dataDictionary)
     {
@@ -63,6 +64,25 @@ class InstrumentMetadata
             $ddEntry[] =  $completionField;
             $this->instrumentFields[$key] = $ddEntry;
         }
+    }
+
+    private function initInstrumentNames() {
+        $this->instrumentNames = [];
+        foreach ($this->dataDictionary as $key => $ddEntry) {
+            if (! isset($this->instrumentNames[$ddEntry['form_name']] )) {
+                $this->instrumentNames[$ddEntry['form_name']] = $ddEntry['form_name'];
+            }
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function getInstrumentNames() {
+        if (! isset($this->instrumentNames)) {
+            $this->initInstrumentNames();
+        }
+        return $this->instrumentNames;
     }
 
     /**
@@ -108,6 +128,17 @@ class InstrumentMetadata
             $this->init();
         }
         return $this->resultArray[$instrument]['principal_date'];
+    }
+
+    /**
+     *
+     */
+    public function getDateFormat($instrument)
+    {
+        if (! isset($this->resultArray)) {
+            $this->init();
+        }
+        return $this->resultArray[$instrument]['principal_datefmt'];
     }
 
     /**
@@ -187,9 +218,10 @@ class InstrumentMetadata
             // make a note of the fields tagged as @PRINCIPAL_DATE for later use when displaying the secondary table join options
             if (contains($ddEntry['field_annotation'],'@PRINCIPAL_DATE')) {
                 $lookupTable[$ddEntry['form_name']]['principal_date']  = $ddEntry['field_name'];
+                $lookupTable[$ddEntry['form_name']]['principal_datefmt']  = $ddEntry['text_validation_type_or_show_slider_number'];
             }
         }
-
+$module->emDebug(print_r($lookupTable,TRUE));
         $this->resultArray = $lookupTable;
     }
 

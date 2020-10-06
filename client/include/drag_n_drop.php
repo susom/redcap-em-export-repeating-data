@@ -25,7 +25,8 @@ $instruments = $module->getInstrumentNames();
             foreach ($instruments as $key => $instrument) {
             ?>
             // this is the date field used for correlated joins
-            instrumentLookup["<?php echo $key ?>_@date"] = "<?php echo $module->getDateField($key) ?>";
+            instrumentLookup["<?php echo $key ?>_@date_field"] = "<?php echo $module->getDateField($key) ?>";
+            instrumentLookup["<?php echo $key ?>_@date_format"] = "<?php echo $module->getDateFormat($key) ?>";
             // this entry is used when a folder name is dropped into the columns panel
             instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
             //  this idempotent entry is actually used, when de-selecting all checkbox values

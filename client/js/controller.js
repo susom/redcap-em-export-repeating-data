@@ -248,7 +248,8 @@ function getExportJson(is_preview, formdata) {
             join.join = 'repeating-instance-select'
         } else if (panelHeading.hasClass('tier-3')) {
             join.join = 'repeating-date-pivot'
-            join.primary_date = getInstrumentForField(instrument_name + '_@date');
+            join.primary_date = getInstrumentForField(instrument_name + '_@date_field');
+            join.primary_datefmt = getInstrumentForField(instrument_name + '_@date_format');
         }
 
         cardinality[instrument_name] = Object.assign({}, join);

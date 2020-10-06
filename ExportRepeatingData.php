@@ -28,8 +28,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     private $instrumentMetadata;
 
-    private $instrumentNames;
-
     private $dataDictionary = array();
 
     private $export;
@@ -48,7 +46,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
                 $this->setDataDictionary(REDCap::getDataDictionary($this->getProject()->project_id, 'array'));;
-                $this->instrumentNames = REDCap::getInstrumentNames();
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
                 $this->export = new Export($this->getProject(), $this->instrumentMetadata);
 
@@ -88,7 +85,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getInstrumentNames() {
-        return $this->instrumentNames;
+        return $this->instrumentMetadata->getInstrumentNames();
     }
 
     /**
@@ -169,7 +166,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         $this->patientFilter = $patientFilter;
     }
 
-
     /**
      * @return mixed
      */
@@ -216,6 +212,11 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     public function getDateField($key)
     {
         return $this->instrumentMetadata->getDateField($key);
+    }
+
+    public function getDateFormat($key)
+    {
+        return $this->instrumentMetadata->getDateFormat($key);
     }
 
     public function isInstanceSelectLinked($key)
