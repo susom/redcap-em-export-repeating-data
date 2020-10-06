@@ -81,7 +81,7 @@ class Export
                     $json->forms[$instrument]->foreign_key_field = $primaryJoinField ;
                     $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
                     $json->forms[$instrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
-                    $json->forms[$instrument]->primary_date = $json_inp->cardinality->$instrument->primary_date;
+                    $json->forms[$instrument]->primary_date_field = $json_inp->cardinality->$instrument->primary_date;
 
                 }
             }
@@ -177,88 +177,97 @@ class Export
         
         foreach ($json->forms as $form) {
 
+            // To identify the key instrument - first instrument is considered primary and all other instruments will 
+            // be joined as left outer joins
+
             $primaryForm = ($from == "") ;
             if ($primaryForm) {
                 $primaryFormName = $form->form_name ;
             }
         
+            // mapping null instance to '1'
             $formSql = (($form->cardinality == 'singleton') ? " ( select rd.record " : " ( select rd.record, COALESCE(rd.instance, '1') instance ") ;
         
+            // Converting redcap_data into a view format for each selected fields
             foreach($form->fields as $field) {
                 $fields[] = $field ;
                 $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
             }
-
-            if (isset($form->cardinality))
-            {
-                $cardinality = $form->cardinality ;
-
-                if ($form->join_type == "date_proximity") {
-                    $formsql =  "Select " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $form->foreign_key_ref . "_instance" .
-                            "From " .
-                            $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
-                            "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
-                            "GROUP BY rd.record, rd.instance ) " . $form->form_name . "_int, " .
-                            "  (select m.record, m.instance ". $form->form_name . "_instance, " .
-                            "    (select COALESCE (rd.instance, 1) " .
-                            "	from redcap_data rd " .
-                            "	where rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
-                            "	order by abs(datediff(m." . $form->join_field . ", rd.value)) asc " .
-                            "	limit 1 " . 
-                            ") as " . $form->foreign_key_ref . "_instance " .
-                            "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as " . $form->join_field . " " .
-                               "	  from redcap_data rd where rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->join_field . "'  " .
-                               "	) m " . 
-                            ") " . $form->form_name . "._dproxy " .
-                            "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 
-                            $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record "  ;
-                            ") " . $form.form_name . " " .
-                            "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " . 
-                            $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
-
-                    $formSql = $formSql . ") " . $form->form_name ;
-
-                    if ($primaryForm) {
-                        $from = "FROM " . $formSql ;
-                    } else {
-                        $from = $from . " left outer join " . $formSql . " " ;                        
-                    }
             
+            // date proximity is a very special case - this is the first try - not sure about the performace yet
+            // Test with realistic data set and change if needed.
+            if ($form->join_type == "date_proximity") {
+                $formSql =  "Select " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $form->foreign_key_ref . "_instance " . 
+                        "From " .
+                        $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
+                        "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
+                        "GROUP BY rd.record, rd.instance ) " . $form->form_name . "_int, " .
+                        "  (select m.record, m.instance ". $form->form_name . "_instance, " .
+                        "    (select COALESCE (rd.instance, 1) " .
+                        "	from redcap_data rd " .
+                        "	where rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
+                        "   and datediff(rd.value, m." . $form->primary_date_field . ") <= " . $form->lower_bound . " " .
+                        "   and datediff(m. " . $form->primary_date_field . ", rd.value) <= " . $form->upper_bound . " " .
+                        "	order by abs(datediff(m." . $form->primary_date_field . ", rd.value)) asc " . 
+                        "	limit 1 " . 
+                        ") as " . $form->foreign_key_ref . "_instance " .
+                        "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as " . $form->primary_date_field . " " .
+                            "	  from redcap_data rd where rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->primary_date_field . "'  " .
+                            "	) m " . 
+                        ") " . $form->form_name . "_dproxy " .
+                        "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 
+                        $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record "  ;
+                        ") " . $form->form_name . " " .
+                        "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " . 
+                        $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
+
+                $formSql = $formSql . ") " . $form->form_name ;
+
+                if ($primaryForm) {
+                    $from = "FROM " . $formSql ;
                 } else {
+                    $from = $from . " left outer join ( " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  " .
+                                            "and " . $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance )" ;
+                }
+                
+                //$module->emDebug("SQL inside the date_proximity : " . $from) ;
+                
+            } else {
+        
+                // Singletons - group by the record only
+                if ($form->cardinality == "singleton") {
+                    $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
+                            "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
+                            "GROUP BY rd.record" ;
+                } else {   // for repeating forms group by record and instance
+                    $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
+                            "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
+                            "GROUP BY rd.record, rd.instance" ;        
+                }
             
-                    if ($cardinality == "singleton") {
-                        $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
-                                "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
-                                "GROUP BY rd.record" ;
-                    } else {
-                        $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
-                                "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " . 
-                                "GROUP BY rd.record, rd.instance" ;        
+                $formSql = $formSql . ") " . $form->form_name ;
+            
+                if ($primaryForm) {
+                    $from = "FROM " . $formSql ;
+                } else {
+                    $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  " ;
+                    
+                    // If it is instance join type, join with "instance" column of the parent
+                    if (isset($form->join_type)) {
+                        if ($form->join_type == "instance") {
+                            $form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance" ;
+                        } elseif ($form->join_type == "lookup") {  // Not implemented yet. To support joining any columns
+                            $form->join_condition = $form->join_key_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field ;
+                        }    
                     }
-                
-                    $formSql = $formSql . ") " . $form->form_name ;
-                
-                    if ($primaryForm) {
-                        $from = "FROM " . $formSql ;
-                    } else {
-                        $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  " ;
-                        
-                        if (isset($form->join_type)) {
-                            if ($form->join_type == "instance") {
-                                $form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance" ;
-                            } elseif ($form->join_type == "date_proximity") {
-                                $form->join_condition = $form->join_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field ;
-                            }    
-                        }
 
-                        if (isset($form->join_condition)) {
-                            $from = $from . " and " . $form->join_condition ;
-                        }
-                
-                        $from = $from . " ) " ;
+                    if (isset($form->join_condition)) {
+                        $from = $from . " and " . $form->join_condition ;
                     }
-                }                
-            }
+            
+                    $from = $from . " ) " ;
+                }
+            }                            
 
             // Doing coalesce so nulls will be displayed as '' in output reports
             foreach($form->fields as $field) {
@@ -278,8 +287,7 @@ class Export
             $filtersql = $this->processFilters($json->filters) ;
             if (strlen($filtersql) > 0) {
                 $sql = $sql . " where " . $filtersql ;
-            }
-            //$sql = $sql . " where " . implode(" and ", $json->filters);
+            }            
         }
 
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
