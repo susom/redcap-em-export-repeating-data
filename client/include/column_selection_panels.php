@@ -54,7 +54,7 @@ foreach ($instruments as $key => $instrument) {
     // see drag_n_drop.php for the dynamic behaviors in javascript
 
     ?>
-    <div style="display: none;" class=" ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
+    <div style="display: none;" class="ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
         <div class="panel-heading <?php echo $cardinality?> ref-<?php echo $cardinality?>">
             <label for="chb1" class="pr-1"><?php echo $instrument ?> <input type="checkbox"  id="<?php echo $key ?>"  ></label>
             <?php echo $tag ?>

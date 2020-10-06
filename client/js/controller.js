@@ -155,8 +155,14 @@ function tableize(headers, rows) {
     table += '</thead><tbody>'
     rows.forEach(function (row, index) {
         table += '<tr>'
+        isFirst = true;
         row.forEach(function(cell, index) {
-            table +=  '<td>' + cell + '</td>';
+            if (isFirst) {
+                table +=  '<td><a href="' + getInstrumentForField('url') + cell + '">' + cell + '</a></td>';
+                isFirst = false;
+            } else {
+                table +=  '<td>' + cell + '</td>';
+            }
         });
         table += '</tr>'
     });

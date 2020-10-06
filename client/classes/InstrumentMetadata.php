@@ -54,15 +54,8 @@ class InstrumentMetadata
         foreach ($this->dataDictionary as $key => $ddEntry) {
             if (!isset ($this->instrumentFields[$ddEntry['form_name'] . "_fields"])) {
                 $this->instrumentFields[$ddEntry['form_name'] . "_fields"] = [];
-                $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $ddEntry['form_name'] . "_complete";
             }
             $this->instrumentFields[$ddEntry['form_name'] . "_fields"][] = $key;
-        }
-        // second pass: move the completion field to the end of each list
-        foreach ($this->instrumentFields as $key => $ddEntry) {
-            $completionField = array_shift($ddEntry);
-            $ddEntry[] =  $completionField;
-            $this->instrumentFields[$key] = $ddEntry;
         }
     }
 
@@ -201,8 +194,8 @@ class InstrumentMetadata
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
-            if (contains($ddEntry['field_annotation'],'@FORMINSTANCE')) {
-                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['field_annotation']);
+            if (contains($ddEntry['misc'],'@FORMINSTANCE')) {
+                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['misc']);
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $parent_instrument;
                 $lookupTable[$ddEntry['form_name']]['foreign_key_field'] = $ddEntry['field_name'];
                 // add one more entry, indicating that the parent is linked to the child
@@ -216,7 +209,7 @@ class InstrumentMetadata
             }
 
             // make a note of the fields tagged as @PRINCIPAL_DATE for later use when displaying the secondary table join options
-            if (contains($ddEntry['field_annotation'],'@PRINCIPAL_DATE')) {
+            if (contains($ddEntry['misc'],'@PRINCIPAL_DATE')) {
                 $lookupTable[$ddEntry['form_name']]['principal_date']  = $ddEntry['field_name'];
                 $lookupTable[$ddEntry['form_name']]['principal_datefmt']  = $ddEntry['text_validation_type_or_show_slider_number'];
             }

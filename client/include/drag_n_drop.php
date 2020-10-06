@@ -13,6 +13,7 @@ $module->emDebug("drag_n_drop launching");
 // end debug setup part 1
 
 $instruments = $module->getInstrumentNames();
+
 ?>
 <script>
     var instrumentLookup;
@@ -21,6 +22,8 @@ $instruments = $module->getInstrumentNames();
         // console.log(fieldOrInstrumentName);
         if (! instrumentLookup) {
             instrumentLookup = [];
+            instrumentLookup['url'] = "<?php echo $module->getPrefix()?>" + '/DataEntry/record_home.php?pid=' +
+                "<?php echo $module->getProjectId()?>" + '&arm=1&id=';
             <?php
             foreach ($instruments as $key => $instrument) {
             ?>
