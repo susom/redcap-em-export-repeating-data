@@ -79,8 +79,10 @@ class Export
                     $json->forms[$instrument]->join_type = 'date_proximity';
                     $json->forms[$instrument]->foreign_key_ref = $primaryJoinInstrument ;
                     $json->forms[$instrument]->foreign_key_field = $primaryJoinField ;
-                    $json->forms[$instrument]->param1 = $json_inp->cardinality->$instrument->lower_bound;
-                    $json->forms[$instrument]->param2 = $json_inp->cardinality->$instrument->upper_bound;
+                    $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
+                    $json->forms[$instrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
+                    $json->forms[$instrument]->primary_date = $json_inp->cardinality->$instrument->primary_date;
+
                 }
             }
             $json->forms[$column->instrument]->fields[] = $column->field;
@@ -271,7 +273,6 @@ class Export
             $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
             array_unshift($fields, $json->record_id) ;   // add record_id as the first field in the fields array
         }
-        
         
         if (isset($json->filters)) {
             $filtersql = $this->processFilters($json->filters) ;

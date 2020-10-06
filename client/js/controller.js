@@ -218,9 +218,6 @@ function getExportJson(is_preview, formdata) {
             filter.param = item.value;
         } else if (item.name === 'limiter_connector[]') {
             filter.boolean = item.value;
-            console.log('looking up instrument for');
-            console.log(filter.field);
-            console.log(getInstrumentForField(filter.field));
             filter.instrument = getInstrumentForField(filter.field);
             filters.push(Object.assign({}, filter));
         } else if (item.name === 'report_name') {
@@ -251,6 +248,7 @@ function getExportJson(is_preview, formdata) {
             join.join = 'repeating-instance-select'
         } else if (panelHeading.hasClass('tier-3')) {
             join.join = 'repeating-date-pivot'
+            join.primary_date = getInstrumentForField(instrument_name + '_@date');
         }
 
         cardinality[instrument_name] = Object.assign({}, join);
@@ -300,8 +298,6 @@ function escape_doublquotes(data) {
 }
 
 function triggerDownload(data, filename, filetype) {
-    console.log('stringified version');
-    console.log(data);
     var blob = new Blob([ data ], {type: filetype});
     if (navigator.msSaveBlob) { // IE 10+
         navigator.msSaveBlob(blob, filename );
