@@ -67,6 +67,13 @@
       "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
       "required": false,
       "type": "checkbox"
+    },
+
+    {
+      "key": "preview-record-limit",
+      "name": "<b>Preview Record Limit</b><br><i>(optional)</i> Set the record limit for preview queries. Default is 200 rows",
+      "required": false,
+      "type": "text"
     }
 
   ],

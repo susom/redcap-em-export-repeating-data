@@ -2,8 +2,6 @@
 
 namespace Stanford\ExportRepeatingData;
 /** @var ExportRepeatingData $module */
-use \REDCap;
-use \Project;
 
 /**
  * Class Export
@@ -24,12 +22,12 @@ class Export
 
     function buildAndRunQuery($config)
     {
-        $newConfig = $this->assembleCardinality($config);
+        $newConfig = $this->assembleSpecification($config);
         $result = $this->runQuery($newConfig);
         return $result;
     }
 
-    function assembleCardinality($config)
+    function assembleSpecification($config)
     {
         global $module;
 
@@ -166,6 +164,10 @@ class Export
     function runQuery($json)
     {
         global $module;
+        $rowLimit = $module->getProjectSetting('preview-record-limit');
+        if (! isset($rowLimit)) {
+            $rowLimit = 200;
+        }
 
         $project_id = $this->Proj->project_id;
         $select = "" ;
@@ -217,9 +219,10 @@ class Export
                         ") " . $form->form_name . "_dproxy " .
                         "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 
                         $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record "  ;
-                        ") " . $form->form_name . " " .
-                        "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " . 
-                        $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
+                // the next 3 lines were never used. Comment out in place for now.
+//                        ") " . $form->form_name . " " .
+//                        "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " .
+//                        $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
 
                 $formSql = $formSql . ") " . $form->form_name ;
 
@@ -291,7 +294,7 @@ class Export
         }
 
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
-            $sql = $sql . " LIMIT 200";
+            $sql = $sql . " LIMIT " . $rowLimit;
         }
 
         $module->emDebug($sql);
