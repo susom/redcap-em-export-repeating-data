@@ -70,7 +70,6 @@ class Export
                 $meta = $this->instrumentMetadata->isRepeating($column->instrument);
                 $json->forms[$instrument]->cardinality = $meta['cardinality'];
                 $joinType = $json_inp->cardinality->$instrument->join;
-                $json->forms[$instrument]->join_type = $joinType ;
                 if ( $joinType == 'repeating-instance-select')  {
                     $json->forms[$instrument]->join_type = 'instance';
                     $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'] ;
