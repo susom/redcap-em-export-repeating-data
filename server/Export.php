@@ -203,6 +203,12 @@ class Export
             // date proximity is a very special case - this is the first try - not sure about the performace yet
             // Test with realistic data set and change if needed.
             if ($form->join_type == "date_proximity") {
+
+                $upperBoundSet = (isset($form->upper_bound) && strlen(trim($form->upper_bound)) > 0) ;
+                $lowerBoundSet = (isset($form->lower_bound) && strlen(trim($form->lower_bound)) > 0) ;
+                
+                $dateValSel = "rd.value" ;  // In date proximity join case, the value is always rd.value
+                
                 $formSql =  "Select " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $form->foreign_key_ref . "_instance " . 
                         "From " .
                         $formSql . " FROM redcap_data rd, redcap_metadata rm " . 
@@ -212,21 +218,17 @@ class Export
                         "    (select COALESCE (rd.instance, 1) " .
                         "	from redcap_data rd, redcap_metadata rm " .
                         "	where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.record = m.record and rd.field_name = '" . $form->foreign_key_field . "' and rd.project_id  = " . $project_id . " " .
-                        "   and datediff($valSel, m." . $form->primary_date_field . ") <= " . $form->lower_bound . " " .
-                        "   and datediff(m. " . $form->primary_date_field . ", $valSel) <= " . $form->upper_bound . " " .
-                        "	order by abs(datediff(m." . $form->primary_date_field . ", $valSel)) asc " .
+                        ($lowerBoundSet?("   and datediff($dateValSel, m." . $form->primary_date_field . ") <= " . $form->lower_bound . " "): " ") .
+                        ($upperBoundSet?("   and datediff(m." . $form->primary_date_field . ", $dateValSel) <= " . $form->upper_bound . " "):" ") .
+                        "	order by abs(datediff(m." . $form->primary_date_field . ", $dateValSel)) asc " .
                         "	limit 1 " . 
                         ") as " . $form->foreign_key_ref . "_instance " .
-                        "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, $valSel as " . $form->primary_date_field . " " .
+                        "from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, $dateValSel as " . $form->primary_date_field . " " .
                             "	  from redcap_data rd, redcap_metadata rm where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $project_id . " and rd.field_name  = '" . $form->primary_date_field . "'  " .
                             "	) m " . 
                         ") " . $form->form_name . "_dproxy " .
                         "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " . 
                         $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record "  ;
-                // the next 3 lines were never used. Comment out in place for now.
-//                        ") " . $form->form_name . " " .
-//                        "ON (" . $primaryFormName  . ".record = " . $form->form_name . ".record and " .
-//                        $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
 
                 $formSql = $formSql . ") " . $form->form_name ;
 
