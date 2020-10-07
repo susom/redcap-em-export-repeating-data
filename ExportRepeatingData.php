@@ -244,9 +244,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $this->instrumentMetadata->getDateField($key);
     }
 
-    public function getDateFormat($key)
+    public function getValidation($key)
     {
-        return $this->instrumentMetadata->getDateFormat($key);
+        return $this->instrumentMetadata->getValidation($key);
     }
 
     public function isInstanceSelectLinked($key)

@@ -222,6 +222,7 @@ function getExportJson(is_preview, formdata) {
             filter.operator = item.value;
         } else if (item.name === 'limiter_value[]') {
             filter.param = item.value;
+            filter.validation = getInstrumentForField(filter.field + '@validation');
         } else if (item.name === 'limiter_connector[]') {
             filter.boolean = item.value;
             filter.instrument = getInstrumentForField(filter.field);
@@ -257,7 +258,6 @@ function getExportJson(is_preview, formdata) {
         } else if (panelHeading.hasClass('tier-3')) {
             join.join = 'repeating-date-pivot'
             join.primary_date = getInstrumentForField(instrument_name + '_@date_field');
-            join.primary_datefmt = getInstrumentForField(instrument_name + '_@date_format');
         }
 
         cardinality[instrument_name] = Object.assign({}, join);

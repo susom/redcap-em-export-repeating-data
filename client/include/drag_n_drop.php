@@ -27,21 +27,21 @@ $instruments = $module->getInstrumentNames();
             <?php
             foreach ($instruments as $key => $instrument) {
             ?>
-            // this is the date field used for correlated joins
-            instrumentLookup["<?php echo $key ?>_@date_field"] = "<?php echo $module->getDateField($key) ?>";
-            instrumentLookup["<?php echo $key ?>_@date_format"] = "<?php echo $module->getDateFormat($key) ?>";
-            // this entry is used when a folder name is dropped into the columns panel
-            instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
-            //  this idempotent entry is actually used, when de-selecting all checkbox values
-            //    when a panel is hidden by clicking the x in the upper right
-            instrumentLookup["<?php echo $key ?>"] = "<?php echo $key ?>";
-            <?php
-            $fields = $module->getFieldNames($key);
-            foreach ($fields as $field) {
-            ?>
-            instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
-            <?php
-            }
+                // this is the date field used for correlated joins
+                instrumentLookup["<?php echo $key ?>_@date_field"] = "<?php echo $module->getDateField($key) ?>";
+                // this entry is used when a folder name is dropped into the columns panel
+                instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
+                //  this idempotent entry is actually used, when de-selecting all checkbox values
+                //    when a panel is hidden by clicking the x in the upper right
+                instrumentLookup["<?php echo $key ?>"] = "<?php echo $key ?>";
+                <?php
+                $fields = $module->getFieldNames($key);
+                foreach ($fields as $field) {
+                ?>
+                    instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
+                    instrumentLookup["<?php echo $field ?>@validation"] = "<?php echo $module->getValidation($field) ?>";
+                <?php
+                }
             }
             ?>
         }

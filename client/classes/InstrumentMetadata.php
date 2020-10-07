@@ -126,12 +126,12 @@ class InstrumentMetadata
     /**
      *
      */
-    public function getDateFormat($instrument)
+    public function getValidation($key)
     {
         if (! isset($this->resultArray)) {
             $this->init();
         }
-        return $this->resultArray[$instrument]['principal_datefmt'];
+        return $this->resultArray[$key];
     }
 
     /**
@@ -188,12 +188,12 @@ class InstrumentMetadata
         $lookupTable = array();
         $result = db_query($sql);
         foreach ($result as $record) {
-            $resultArray[] = $record;
             $lookupTable[$record['instrument']] = $record;
         }
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
+
             if (contains($ddEntry['misc'],'@FORMINSTANCE')) {
                 $parent_instrument = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['misc']);
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $parent_instrument;
@@ -201,7 +201,6 @@ class InstrumentMetadata
                 // add one more entry, indicating that the parent is linked to the child
 
                 $lookupTable[$parent_instrument]['children'][] = $ddEntry['form_name'];
-                $module->emDebug(print_r($lookupTable,TRUE));
 
             } else if (!isset($lookupTable[$ddEntry['form_name']]['foreign_key_ref'])) {
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = '';
@@ -211,10 +210,12 @@ class InstrumentMetadata
             // make a note of the fields tagged as @PRINCIPAL_DATE for later use when displaying the secondary table join options
             if (contains($ddEntry['misc'],'@PRINCIPAL_DATE')) {
                 $lookupTable[$ddEntry['form_name']]['principal_date']  = $ddEntry['field_name'];
-                $lookupTable[$ddEntry['form_name']]['principal_datefmt']  = $ddEntry['text_validation_type_or_show_slider_number'];
             }
+            // last but not least, stash a local copy of the validation string
+            $lookupTable[$ddEntry['field_name']]  = $ddEntry['element_validation_type'];
+
         }
-$module->emDebug(print_r($lookupTable,TRUE));
+
         $this->resultArray = $lookupTable;
     }
 

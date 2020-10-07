@@ -58,7 +58,6 @@ class Export
 
         // stash the preview setting, the SQL generation step needs to know
         $json->preview = $json_inp->preview ;  // $config['preview'];
-
         foreach ($json_inp->columns as $column) {
             $instrument = $column->instrument;
             if (!isset($json->forms[$instrument])) {
@@ -79,7 +78,6 @@ class Export
                     $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
                     $json->forms[$instrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
                     $json->forms[$instrument]->primary_date_field = $json_inp->cardinality->$instrument->primary_date;
-                    $json->forms[$instrument]->primary_date_format = $json_inp->cardinality->$instrument->primary_datefmt;
 
                 }
             }
