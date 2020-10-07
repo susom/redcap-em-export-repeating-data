@@ -338,37 +338,90 @@ class Export
         return $result;        
     }
 
+    function endsWith($string, $endString)
+    {
+        $len = strlen($endString);
+        if ($len == 0) {
+            return true;
+        }
+        return (substr($string, -$len) === $endString);
+    }
+
     // Just the raw format values. v1 - needs iteration
+    /*  Possible Validation types - Right now, code handles only dates, numbers as special case
+    "date_dmy"
+    "date_mdy"
+    "date_ymd"
+    "datetime_dmy" 
+    "datetime_mdy"
+    "datetime_ymd"
+    "datetime_seconds_dmy" (D-M-Y H:M:S)
+    "datetime_seconds_mdy" (M-D-Y H:M:S)
+    "datetime_seconds_ymd" (Y-M-D H:M:S)
+    "email"
+    "integer"
+    "number"
+    "phone" Phone (North America)
+    "time" (HH:MM)
+    "zipcode" Zipcode (U.S.)
+    */    
     function processFilters($filters) {
 
         $filtersql = "" ;
 
         foreach ($filters as $filter) {
+            
+            /* To test 
+            if ($filter->field == "pft_test_date") 
+                $filter->validation = "date_mdy" ;
+            if ($filter->field == "no_of_tests") 
+                $filter->validation = "integer" ;
+            */
 
-            $filstr = $filter->instrument . "." . $filter->field . " " ;
+            $col = $filter->instrument . "." . $filter->field ;            
+            $val = db_escape($filter->param) ;
+            $dt = "string" ;
+
+            if ($this->endsWith($filter->validation, "_dmy")) {
+                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+                $val = "str_to_date('" . $val . "', '%d-%m-%Y')" ;
+                $dt = "date" ;
+            } elseif ($this->endsWith($filter->validation, "_mdy")) {
+                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+                $val = "str_to_date('" . $val . "', '%m-%d-%Y')" ;
+                $dt = "date" ;
+            } elseif ($this->endsWith($filter->validation, "_ymd")) {
+                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+                $val = "str_to_date('" . $val . "', '%Y-%m-%d')" ;
+                $dt = "date" ;
+            }
+            
+            if (($filter->validation == "integer" || $filter->validation == "number"))
+                $dt = "number" ;
             
             if ($filter->operator == "E")
-                $filstr = $filstr . " = '" . db_escape($filter->param) . "'" ;
+                $filterstr = ($dt == "string") ? ($col . " = '" . $val . "'") : ($col . " = " . $val) ;
             elseif ($filter->operator == "NE")
-                $filstr = $filstr . " <> '" . db_escape($filter->param) . "'" ;
+                $filterstr = ($dt == "string") ? ($col . " <> '" . $val . "'") : ($col . " <> " . $val) ;
             elseif ($filter->operator == "CONTAINS")
-                $filstr = $filstr . " like '%" . db_escape($filter->param) . "%'" ;
+                $filterstr = $col . " like '%" . $val . "%'";
             elseif ($filter->operator == "NOT_CONTAIN")
-                $filstr = $filstr . " not like '%" . db_escape($filter->param) . "%'" ;        
+                $filterstr = $col . " not like '%" . $val . "%'";
             elseif ($filter->operator == "STARTS_WITH")
-                $filstr = $filstr . " like '" . db_escape($filter->param) . "%'" ;                
+                $filterstr = $col . " like '" . $val . "%'";
             elseif ($filter->operator == "ENDS_WITH")
-                $filstr = $filstr . " like '%" . db_escape($filter->param) . "'" ;                        
+                $filterstr = $col . " like '%" . $val . "'";
             elseif ($filter->operator == "LT")
-                $filstr = $filstr . " < '" . db_escape($filter->param) . "'" ;        
+                $filterstr = ($dt == "string") ? ($col . " < '" . $val . "'") : ($col . " < " . $val) ;                
             elseif ($filter->operator == "LTE")
-                $filstr = $filstr . " <= '" . db_escape($filter->param) . "'" ;        
+                $filterstr = ($dt == "string") ? ($col . " <= '" . $val . "'") : ($col . " <= " . $val) ;
             elseif ($filter->operator == "GT")
-                $filstr = $filstr . " > '" . db_escape($filter->param) . "'" ;        
+                $filterstr = ($dt == "string") ? ($col . " > '" . $val . "'") : ($col . " > " . $val) ;                
             elseif ($filter->operator == "GTE")
-                $filstr = $filstr . " >= '" . db_escape($filter->param) . "'" ;     
+                $filterstr = ($dt == "string") ? ($col . " >= '" . $val . "'") : ($col . " >= " . $val) ;
+                
 
-            $filtersql = $filtersql . $filstr . " " . $filter->boolean . " ";
+            $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
         }
 
         if (substr($filtersql, -4) == "AND " || substr($filtersql, -4) == "OR ")
@@ -380,45 +433,3 @@ class Export
     
 }
 
-
-            /*
-            {
-                "instrument": "pft",
-                "cardinality": "repeating-secondary ",
-                "join_type": "date_proximity",
-                "join_field": "pft_test_date",
-                "foreign_key_field": "visit_date",
-                "foreign_key_ref": "visit"
-        
-                "instrument": "meds",
-                "cardinality": "repeating-secondary ",
-                "join_type": "date_proximity",
-                "join_field": "med_visit_date",
-                "foreign_key_field": "visit_date",
-                "foreign_key_ref": "visit"        
-            }
-        
-            left outer JOIN 
-             (
-                select meds_int.*, meds_dproxy.visit_instance 
-                from  	
-                    (SELECT rd.record, COALESCE(rd.`instance`, 1) instance, max(case when rd.field_name = 'med_visit_date' then rd.value end) med_visit_date, max(case when rd.field_name = 'medication' then rd.value end) medication, max(case when rd.field_name = 'meds_complete' then rd.value end) meds_complete 
-                      FROM redcap_data rd, redcap_metadata rm
-                      WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = 15 and rm.form_name = "meds" 
-                      GROUP BY rd.record, COALESCE(rd.`instance`, 1)) meds_int, 
-                    (select m.record, m.instance med_instance, 
-                        (select COALESCE (rd.instance, 1)
-                            from redcap_data rd
-                            where rd.record = m.record and rd.field_name = 'visit_date' and rd.project_id  = 15
-                            order by abs(datediff(m.med_visit_date, rd.value)) asc
-                            limit 1
-                        ) as visit_instance
-                      from ( select distinct rd.record, COALESCE(rd.instance, 1) as instance, rd.value as med_visit_date
-                                 from redcap_data rd where rd.project_id  = 15 and rd.field_name  = 'med_visit_date' 
-                               ) m
-                    ) meds_dproxy			
-                where meds_int.instance = meds_dproxy.med_instance and meds_int.record = meds_dproxy.record
-             ) meds
-            ON (pat.record = meds.record and meds.visit_instance = visit.instance)	 
-        
-            */
