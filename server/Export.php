@@ -167,7 +167,8 @@ class Export
             $rowLimit = 200;
         }
         if ($json->raw_or_label == "label") {
-            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ','))), '\\\\n',1), rd.value)";
+            //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
+            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1), rd.value)";
         } else {
             $valSel = "rd.value";
         }
