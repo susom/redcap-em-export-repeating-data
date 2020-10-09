@@ -234,7 +234,10 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     public function isRepeatingForm($key)
     {
-        return $this->getProject()->isRepeatingForm($this->getEventId(), $key);
+        // SRINI Not sure why this is looking at Proj instead of instrumentMetadata
+        // return $this->getProject()->isRepeatingForm($this->getEventId(), $key);
+
+        return ($this->instrumentMetadata->isRepeating($key)['cardinality'] == 'repeating') ;
     }
 
     public function getDateField($key)

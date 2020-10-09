@@ -168,8 +168,15 @@ class InstrumentMetadata
      */
     private function init()
     {
-//        global $module;
+        global $module;
+
+        // SRINI Replacing the SQL code to use from $this->Proj object        
+        // #$module->emDebug('Whole Project ' . print_r($this->Proj,TRUE)) ;
+
         // look up whether this is a longitudinal or standard project
+        $this->isStandard = !$this->Proj->longitudinal ;
+
+        /*
         $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
 
         $result = db_query($sql);
@@ -177,6 +184,42 @@ class InstrumentMetadata
         foreach ($result as $record) {
             $this->isStandard = ($record['cnt'] == 1);
         }
+        */
+
+        $lookupTable = array();
+
+        // get all forms and make it singleton by default
+        foreach ($this->Proj->eventsForms as $event_id => $forms) {
+            foreach ($forms as $form) {
+                $record = array() ;
+                $record['instrument'] = $form ;
+                $record['cardinality'] = 'singleton' ;
+                $lookupTable[$form] = $record ;
+            }
+        }
+        // Now get repating forms and update the above array
+        foreach ($this->Proj->RepeatingFormsEvents as $event_id => $forms) {
+
+            if ($this->Proj->longitudinal) {
+                if ($forms == "WHOLE") {
+                    foreach($this->Proj->eventsForms[$event_id] as $form) {
+                        $lookupTable[$form]['cardinality'] = 'repeating' ;
+                    }
+                } else {
+                    foreach(array_keys($forms) as $form) {
+                        $lookupTable[$form]['cardinality'] = 'repeating' ;
+                    }
+                }
+            } else {
+                foreach(array_keys($forms) as $form) {
+                    $lookupTable[$form]['cardinality'] = 'repeating' ;
+                }
+            }
+
+        }
+        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
+
+        /*
         // now build the list of attributes for all instruments associated with the project
         $sql = "select distinct md.form_name as instrument,
            case when rer.form_name is not null then 'repeating' else 'singleton' end as cardinality
@@ -190,6 +233,8 @@ class InstrumentMetadata
         foreach ($result as $record) {
             $lookupTable[$record['instrument']] = $record;
         }
+        */
+
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {

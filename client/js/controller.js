@@ -209,8 +209,12 @@ function saveExportJson() {
 function getLabelOrCode(field, item_value, raw_or_label) {
     // used when assembling the model of the user-specified filters. If raw data, return the item as is
     // otherwise look up and return the associated label, so the filter value will match the selected data
-    if (raw_or_label === 'label') {
-        lov = getInstrumentForField(field + '@lov');
+
+    //SRINI - moved this lov init outside and go to lhe label section only if htis has valid value
+    //This is done cause it was causing parsing error
+    lov = getInstrumentForField(field + '@lov');
+    if (raw_or_label === 'label' && lov != "") {
+
         parts1 = lov.split("\n " + item_value + ", ");
         if (parts1.length === 1) {
             // they selected the first item on the list
