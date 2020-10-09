@@ -215,7 +215,8 @@ class Export
         
             // Converting redcap_data into a view format for each selected fields
             foreach($form->fields as $field) {
-                $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then $valSel end) " . $field . " ";
+                // changed from max to group_contact to handle checkbox values - SDM-109
+                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' then $valSel end) " . $field . " ";
             }
             
             // date proximity is a very special case - this is the first try - not sure about the performace yet
@@ -437,8 +438,11 @@ class Export
                 $filterstr = ($dt == "string") ? ($col . " > '" . $val . "'") : ($col . " > " . $val) ;                
             elseif ($filter->operator == "GTE")
                 $filterstr = ($dt == "string") ? ($col . " >= '" . $val . "'") : ($col . " >= " . $val) ;
+            elseif ($filter->operator == "CHECKED")
+                $filterstr = $col . " like '%" . $val . "%'";
+            elseif ($filter->operator == "UNCHECKED")
+                $filterstr = $col . " not like '%" . $val . "%'";
                 
-
             $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
         }
 
