@@ -25,15 +25,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         <script src="<?php echo $module->getUrl("client/js/bstreeview.js") ?>"></script>
         <!-- javascript with data to drive the left hand side hierarchical tree browser of instruments & fields -->
         <!-- renders into the div with id='tree' -->
-        <?php
-        require_once($module->getModulePath() . "client/include/instruments_and_fields.php");
-        ?>
-
-        <!-- local setup for drag n drop. Note this must occur after the inclusion of instruments_and_fields.php -->
-        <?php
-        require_once($module->getModulePath() . "client/include/drag_n_drop.php");
-        ?>
-
+        <script id="insert-js-here"></script>
         <!-- local style overrides -->
         <link rel="stylesheet" type="text/css" href="<?php echo $module->getUrl("client/css/exportStyle.css") ?>"/>
 
@@ -50,6 +42,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token" value="<?php echo System::getCsrfToken() ?>">
             <input type="hidden" name="report-submit" id="report-submit"
                    value="<?php echo $module->getUrl("server/getDataFromServer.php") ?>">
+            <input type="hidden" name="clientmeta-submit" id="clientmeta-submit"
+                   value="<?php echo $module->getUrl("server/getClientMetadata.php") ?>">
 
             <!-- imitate other REDCap page headers -->
             <div class="row" >
@@ -95,6 +89,13 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     <div id="tree" class="bstreeview" >
 
                     </div>
+
+                    <div class="mt-20 ">&nbsp;</div>
+                    <div class="big-spin spinner-border text-secondary " role="status" id="ui-loading" >
+                        <span class="sr-only">Loading...</span>
+                    </div>
+
+
                 </div>
 
                 <!-- right hand side -->

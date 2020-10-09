@@ -4,13 +4,9 @@ namespace Stanford\ExportRepeatingData;
 require_once "emLoggerTrait.php";
 ini_set('max_execution_time', 0);
 set_time_limit(0);
-require_once(__DIR__ . "/client/classes/InstrumentMetadata.php");
+require_once(__DIR__ . "/server/InstrumentMetadata.php");
 require_once(__DIR__ . "/server/Export.php");
-
-use REDCap;
-use Stanford\ExportRepeatingData\emLoggerTrait;
-use Stanford\ExportRepeatingData\InstrumentMetadata;
-use Stanford\ExportRepeatingData\Export;
+require_once(__DIR__ . "/server/ClientMetadata.php");
 
 /**
  * Class ExportRepeatingData
@@ -31,6 +27,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     private $dataDictionary = array();
 
     private $export;
+
+    private $clientMetadata;
 
     private $pathPrefix;
 
@@ -53,6 +51,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
                 $this->pathPrefix = substr($referer, 0, $indexOf4thslash);
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
                 $this->export = new Export($this->getProject(), $this->instrumentMetadata);
+                $this->clientMetadata = new ClientMetadata();
 
             }
 
@@ -266,8 +265,27 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
 
     /**
+     * Convert project metadata into a json payload for pickup via ajax from the UI
+     * @param array $config
+     */
+    public function getClientMetadata()
+    {
+        try {
+            $this->emDebug("in getClientMetadata in module");
+
+            $this->clientMetadata->getClientMetadata();
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+            $this->emError($e->getMessage());
+            return "";
+        }
+
+    }
+
+
+    /**
      * convert json to SQL, then send the data back to the client
-     * for display in the browser. Only works with small datatsets
+     * for display in the browser.
      * @param array $config
      */
     public function displayContent($config)

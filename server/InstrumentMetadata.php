@@ -168,7 +168,7 @@ class InstrumentMetadata
      */
     private function init()
     {
-        global $module;
+//        global $module;
         // look up whether this is a longitudinal or standard project
         $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
 

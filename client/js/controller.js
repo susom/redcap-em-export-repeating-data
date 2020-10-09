@@ -1,4 +1,30 @@
 $(function () {
+
+    var struct = {};
+    // launch a callback to the server to render the javascript used
+    // to display the left hand navigation, since this seems to take a long time
+    $.ajax({
+        url: $("#clientmeta-submit").val(),
+        timeout: 60000000,
+        type: 'GET',
+        data: struct,
+        dataType: 'html',
+        success: function (response) {
+            $("#ui-loading").hide();
+            if (response.status === 0) {
+                showError("Error: " + response.message);
+            } else {
+                $("#insert-js-here").replaceWith(response);
+            }
+
+        },
+        error: function (request, error) {
+            $("#ui-loading").hide();
+            showError("STARTUP Server Error: " + JSON.stringify(error));
+            // console.log(request);
+            console.log(error);
+        }
+    });
     // drag n drop file upload for UI settings restore from save file
     $('#holder').on({
         'dragover dragenter': function(e) {
@@ -89,14 +115,14 @@ function runQuery(preview) {
                 showError("Error: " + response.message);
             } else {
                 if (preview) {
-                    var data = tableize(response.headers, response.data);
-                    //console.log(data);
-                    $("#preview-table-div").replaceWith(data);
+                    var table_data = tableize(response.headers, response.data);
+                    //console.log(table_data);
+                    $("#preview-table-div").replaceWith(table_data);
                     $('#preview-table').DataTable();
                     $("#datatable").show();
                 } else {
-                    var data = convertToCSV(response.data);
-                    triggerDownload(data, json.reportname + ".csv", 'text/csv;charset=utf-8;' )
+                    var csv_data = convertToCSV(response.data);
+                    triggerDownload(csv_data, json.reportname + ".csv", 'text/csv;charset=utf-8;' )
                 }
             }
 
@@ -267,13 +293,12 @@ function getExportJson(is_preview, formdata) {
         }
     });
 
-
     struct.preview = is_preview ;
     struct.project = "standard";
     struct.columns = columns;
     struct.filters = filters;
     struct.cardinality = Object.assign({}, cardinality);
-    console.log(struct);
+    // console.log(struct);
     return struct;
 
 }
@@ -285,7 +310,7 @@ function convertToCSV(objArray) {
     for (var i = 0; i < array.length; i++) {
         var line = '';
         for (var index in array[i]) {
-            if (line != '') line += ','
+            if (line !== '') line += ','
             if (array[i][index] && array[i][index].includes(",")) {
                 line += '"';
             }
