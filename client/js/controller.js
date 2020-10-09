@@ -206,6 +206,22 @@ function saveExportJson() {
     triggerDownload(JSON.stringify(json), json.reportname + ".json", 'text/json;charset=utf-8;' )
 }
 
+function getLabelOrCode(field, item_value, raw_or_label) {
+    // used when assembling the model of the user-specified filters. If raw data, return the item as is
+    // otherwise look up and return the associated label, so the filter value will match the selected data
+    if (raw_or_label === 'label') {
+        lov = getInstrumentForField(field + '@lov');
+        parts1 = lov.split("\n " + item_value + ", ");
+        if (parts1.length === 1) {
+            // they selected the first item on the list
+            parts1 = lov.split(item_value + ", ");
+        }
+        parts2 = parts1[1].split("\n");
+        return parts2[0].trim();
+    }
+    return item_value;
+}
+
 function getExportJson(is_preview, formdata) {
     var struct = {};
     struct.reportname = 'unnamed_report';
@@ -247,8 +263,8 @@ function getExportJson(is_preview, formdata) {
         } else if (item.name === 'limiter_operator[]') {
             filter.operator = item.value;
         } else if (item.name === 'limiter_value[]') {
-            filter.param = item.value;
             filter.validation = getInstrumentForField(filter.field + '@validation');
+            filter.param = getLabelOrCode(filter.field, item.value, struct.raw_or_label);
         } else if (item.name === 'limiter_connector[]') {
             filter.boolean = item.value;
             filter.instrument = getInstrumentForField(filter.field);

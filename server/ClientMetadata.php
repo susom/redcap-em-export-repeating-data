@@ -27,11 +27,6 @@ class ClientMetadata
 
         $this->dataDict = $module->getDataDictionary();
         $this->instruments = $module->getInstrumentNames();
-        $module->emDebug("in ClientMetadata.getClientMetadata");
-        $json = '{"a":"b}';
-
-        $jb = json_encode($json);
-        $module->emDebug(print_r($jb,TRUE));
         header("content-type: application/html");?>
         <script>
 
@@ -46,24 +41,26 @@ class ClientMetadata
                     <?php
                     foreach ($this->instruments as $key => $instrument) {
                     ?>
-                    // this is the date field used for correlated joins
-                    instrumentLookup["<?php echo $key ?>_@date_field"] = "<?php echo $module->getDateField($key) ?>";
-                    // this entry is used when a folder name is dropped into the columns panel
-                    instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
-                    //  this idempotent entry is actually used, when de-selecting all checkbox values
-                    //    when a panel is hidden by clicking the x in the upper right
-                    instrumentLookup["<?php echo $key ?>"] = "<?php echo $key ?>";
-                    <?php
-                    $fields = $module->getFieldNames($key);
-                    foreach ($fields as $field) {
-                    ?>
-                    instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
-                    instrumentLookup["<?php echo $field ?>@validation"] = "<?php echo $module->getValidation($field) ?>";
-                    <?php
-                    }
+                        // this is the date field used for correlated joins
+                        instrumentLookup["<?php echo $key ?>_@date_field"] = "<?php echo $module->getDateField($key) ?>";
+                        // this entry is used when a folder name is dropped into the columns panel
+                        instrumentLookup["<?php echo $instrument ?>"] = "<?php echo $key ?>";
+                        //  this idempotent entry is actually used, when de-selecting all checkbox values
+                        //    when a panel is hidden by clicking the x in the upper right
+                        instrumentLookup["<?php echo $key ?>"] = "<?php echo $key ?>";
+                        <?php
+                        $fields = $module->getFieldNames($key);
+                        foreach ($fields as $field) {
+                        ?>
+                            instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
+                            instrumentLookup["<?php echo $field ?>@validation"] = "<?php echo $module->getValue($field . '@validation') ?>";
+                            instrumentLookup["<?php echo $field ?>@lov"] = "<?php echo $module->getValue($field . '@lov') ?>";
+                        <?php
+                        }
                     }
                     ?>
                 }
+                // console.log(instrumentLookup);
                 return instrumentLookup[fieldOrInstrumentName];
             }
 
@@ -188,7 +185,6 @@ class ClientMetadata
                     foreach ($this->instruments as $key => $instrument) {
                     if (! $first_time_through_inst) { echo ",";}
                     $first_time_through_inst = false;
-
                     ?>
                     {
                         text: "<?php echo $instrument ?>",
@@ -200,12 +196,12 @@ class ClientMetadata
                             $fields = $module->getFieldNames($key);
                             $first_time_through_fields = true;
                             foreach ($fields as $field) {
-                            if ($this->dataDict[$field]['field_type'] === 'descriptive') {
-                                continue;
-                            }
-                            if (! $first_time_through_fields) { echo ",";}
-                            $first_time_through_fields = false;
-                            //error_log(print_r($dataDict[$field]['field_type'], TRUE));
+                                if ($this->dataDict[$field]['element_type'] === 'descriptive') {
+                                    continue;
+                                }
+                                if (! $first_time_through_fields) { echo ",";}
+                                $first_time_through_fields = false;
+                                //error_log(print_r($dataDict[$field]['field_type'], TRUE));
                             ?>
                             {
                                 text: "<?php echo $field ?>",
@@ -317,7 +313,7 @@ class ClientMetadata
 // start debug setup part 2
         $endtime = microtime(true);
         $timediff = $endtime - $this->starttime;
-        $module->emDebug("instruments_and_fields completed in " . $module->secondsToTime($timediff));
+        $module->emDebug("getClientMetadata completed in " . $module->secondsToTime($timediff));
 // end debug setup part 2
     }
 }

@@ -106,7 +106,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return string
      */
     public function getPrefix() {
-        $this->emDebug("prefix is now " . $this->pathPrefix);
         return $this->pathPrefix;
     }
 
@@ -243,9 +242,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $this->instrumentMetadata->getDateField($key);
     }
 
-    public function getValidation($key)
+    public function getValue($key)
     {
-        return $this->instrumentMetadata->getValidation($key);
+        return $this->instrumentMetadata->getValue($key);
     }
 
     public function isInstanceSelectLinked($key)
@@ -271,8 +270,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     public function getClientMetadata()
     {
         try {
-            $this->emDebug("in getClientMetadata in module");
-
             $this->clientMetadata->getClientMetadata();
         } catch (\Exception $e) {
             echo $e->getMessage();

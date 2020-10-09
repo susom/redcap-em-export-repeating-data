@@ -45,7 +45,7 @@ class Export
                 break;
             }
         }
-        $module->emDebug('$json_inp is '.print_r($json_inp,TRUE));
+//        $module->emDebug('$json_inp is '.print_r($json_inp,TRUE));
         //  if record_id is missing, add it. Every report needs the record_id
         // look up name of record_id
         foreach ($this->Proj->metadata as $identifier_field => $firstRecord) {

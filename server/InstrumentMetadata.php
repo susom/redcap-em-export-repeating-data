@@ -126,7 +126,7 @@ class InstrumentMetadata
     /**
      *
      */
-    public function getValidation($key)
+    public function getValue($key)
     {
         if (! isset($this->resultArray)) {
             $this->init();
@@ -212,8 +212,9 @@ class InstrumentMetadata
                 $lookupTable[$ddEntry['form_name']]['principal_date']  = $ddEntry['field_name'];
             }
             // last but not least, stash a local copy of the validation string
-            $lookupTable[$ddEntry['field_name']]  = $ddEntry['element_validation_type'];
-
+            $lookupTable[$ddEntry['field_name'] . "@validation"]  = $ddEntry['element_validation_type'];
+            // and of the labels associated with structured inputs (dropdowns, radiobuttons and checkboxes)
+            $lookupTable[$ddEntry['field_name'] . "@lov"]  = $ddEntry['element_enum'];
         }
 
         $this->resultArray = $lookupTable;
