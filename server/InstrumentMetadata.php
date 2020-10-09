@@ -170,21 +170,8 @@ class InstrumentMetadata
     {
         global $module;
 
-        // SRINI Replacing the SQL code to use from $this->Proj object        
-        // #$module->emDebug('Whole Project ' . print_r($this->Proj,TRUE)) ;
-
         // look up whether this is a longitudinal or standard project
         $this->isStandard = !$this->Proj->longitudinal ;
-
-        /*
-        $sql = "select count(1) as cnt from redcap_events_arms where project_id= " . db_escape($this->pid);
-
-        $result = db_query($sql);
-
-        foreach ($result as $record) {
-            $this->isStandard = ($record['cnt'] == 1);
-        }
-        */
 
         $lookupTable = array();
 
@@ -197,7 +184,7 @@ class InstrumentMetadata
                 $lookupTable[$form] = $record ;
             }
         }
-        // Now get repating forms and update the above array
+        // Now get repeating forms and update the above array
         foreach ($this->Proj->RepeatingFormsEvents as $event_id => $forms) {
 
             if ($this->Proj->longitudinal) {
@@ -218,23 +205,6 @@ class InstrumentMetadata
 
         }
         $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
-
-        /*
-        // now build the list of attributes for all instruments associated with the project
-        $sql = "select distinct md.form_name as instrument,
-           case when rer.form_name is not null then 'repeating' else 'singleton' end as cardinality
-           from redcap_metadata md
-             join redcap_data rd on md.project_id = rd.project_id and md.field_name = rd.field_name
-             left outer join redcap_events_repeat rer on rer.event_id = rd.event_id and rer.form_name = md.form_name
-           where md.project_id = " . db_escape($this->pid);
-        // create a temporary hash table to make it easier to augment the data structure
-        $lookupTable = array();
-        $result = db_query($sql);
-        foreach ($result as $record) {
-            $lookupTable[$record['instrument']] = $record;
-        }
-        */
-
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {

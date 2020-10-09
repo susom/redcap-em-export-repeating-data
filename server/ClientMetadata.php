@@ -59,8 +59,9 @@ class ClientMetadata
                         }
                     }
                     ?>
+                    // console.log(instrumentLookup);
                 }
-                // console.log(instrumentLookup);
+
                 return instrumentLookup[fieldOrInstrumentName];
             }
 
@@ -87,17 +88,17 @@ class ClientMetadata
                 // only use tier-2 if the referenced table is present in the list
                 // otherwise use tier-3
 
-                var firstRepeatingPanel = true;
+                var isFirstRepeatingPanel = true;
                 var targetDate;
                 var repeatingForms = [];
+                var firstRepeatingPanel;
                 // set the appropriate classes for panel heading coloring and show/hide the correct badge
                 $(".panel:visible").each(function() {
                     instrumentName= $(this).attr('id').substr(6);
 
                     if ($( this ).find(".repeating-primary").length !== 0) {
                         repeatingForms.push(instrumentName);
-
-                        if (firstRepeatingPanel) {
+                        if (isFirstRepeatingPanel) {
                             // hide secondary badge and show primary badge
                             $(this).find(".repeating-primary").show();
                             $(this).find(".repeating-secondary").hide();
@@ -105,13 +106,10 @@ class ClientMetadata
                             $(this).find(".panel-heading").addClass('tier-1');
                             $(this).find(".panel-heading").removeClass('tier-2');
                             $(this).find(".panel-heading").removeClass('tier-3');
-                            firstRepeatingPanel = false;
-
-                            targetDate = getInstrumentForField(instrumentName + '_@date');
+                            isFirstRepeatingPanel = false;
+                            firstRepeatingPanel = instrumentName;
                         } else {
-
                             $(this).find(".repeating-primary").hide();
-                            $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                             var secondaryHeader = $(this).find(".repeating-secondary");
                             var tertiaryHeader = $(this).find(".repeating-tertiary");
                             secondaryHeader.show();
@@ -122,6 +120,8 @@ class ClientMetadata
                                 var badge = $(this).find(".badge-primary");
                                 var linkedToInstrument = badge.text().substr(22);
                                 // console.log(instrumentName + ' linked to '+ linkedToInstrument);
+                                targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
+                                $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                                 // sigh. "linkedToInstrument in repeatingForms" should work but does not
                                 // so do it the hard way
                                 linkedInstrumentFound  = false;
