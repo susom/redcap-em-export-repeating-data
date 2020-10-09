@@ -180,10 +180,30 @@ class Export
         $module->emDebug('is record_id included? ' . $recordFieldIncluded . ' ' . $json->record_id);
         $primaryFormName = "" ;
         
+        // Keep the order of the fields as specified by the user
         foreach ($json->forms as $form) {
+            // Doing coalesce so nulls will be displayed as '' in output reports
+            foreach($form->fields as $field) {
+                $fields[] = $field ;
+                $select = $select . ( ($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field ;
+            }
+        }
+
+        #$module->emDebug("form before rearranging :" . print_r($json->forms, TRUE)) ;
+        // Make the first repeating form as the primary - SDM-107
+        // Best will be to let the user decide which one is the primary - later
+        foreach ($json->forms as $form) {
+            if ($form->cardinality === 'repeating') {
+                $json->forms = [$form->form_name => $form] + $json->forms ;
+                break ;
+            }
+        }
+        #$module->emDebug("form after rearranging :" . print_r($json->forms, TRUE)) ;
+
+        foreach ($json->forms as $formIdx => $form) {
 
             // To identify the key instrument - first instrument is considered primary and all other instruments will 
-            // be joined as left outer joins
+            // be joined as left outer joins  - sorting is done in earlier loop
 
             $primaryForm = ($from == "") ;
             if ($primaryForm) {
@@ -195,7 +215,6 @@ class Export
         
             // Converting redcap_data into a view format for each selected fields
             foreach($form->fields as $field) {
-                $fields[] = $field ;
                 $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then $valSel end) " . $field . " ";
             }
             
@@ -278,9 +297,9 @@ class Export
             }                            
 
             // Doing coalesce so nulls will be displayed as '' in output reports
-            foreach($form->fields as $field) {
-                $select = $select . ( ($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field ;
-            }            
+            //foreach($form->fields as $field) {
+            //    $select = $select . ( ($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field ;
+            //}            
         }
 
         // If record_id is not chosen add it to the SQL
