@@ -89,7 +89,7 @@ class Export
         }
 
         $json->filters = $json_inp->filters ;
-        
+        $json->record_count = $json_inp->record_count;
         $module->emDebug('final json '.print_r($json,true));
         return $json;
     }
@@ -162,6 +162,13 @@ class Export
     function runQuery($json)
     {
         global $module;
+        // stub out the new record count feature
+        if ($json->record_count == true) {
+            // TODO implement this query and return counts for the supplied filter list
+            $result["count"] = 100;
+            return $result;
+        }
+
         $rowLimit = $module->getProjectSetting('preview-record-limit');
         if (! isset($rowLimit)) {
             $rowLimit = 200;
@@ -216,7 +223,7 @@ class Export
             // Converting redcap_data into a view format for each selected fields
             foreach($form->fields as $field) {
                 // changed from max to group_contact to handle checkbox values - SDM-109
-                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' then $valSel end) " . $field . " ";
+                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' then $valSel end separator '\\n') " . $field . " ";
             }
             
             // date proximity is a very special case - this is the first try - not sure about the performace yet
@@ -337,16 +344,19 @@ class Export
             } else {
                 $data = [];
                 if ("false" == $json->preview) {
-                   $data[] = $fields ;  // $headers;
+                    // when exporting .csv, the return csv is in $data
+                    $data[] = $this->pivotCbHdr($fields) ;  // $headers;
                 }
                 while ($row = db_fetch_assoc($rptdata)) {
                     $cells = [];
                     for ($k = 0 ; $k < count($fields); $k++) {
-                        $cells[] = $row[$fields[$k]];
+                        $cells = array_merge($cells , $this->pivotCbCell($fields[$k], $row[$fields[$k]]));
                     }
                     $data[] = $cells;
+                    $module->emDebug('merged: ' . print_r($data, TRUE));
                 }
-                $result["headers"] = $fields;
+                // when previewing, the return data is in $result, which includes $data
+                $result["headers"] = $this->pivotCbHdr($fields) ;
                 $result["data"] = $data;
             }
         } else {
@@ -452,6 +462,77 @@ class Export
         return $filtersql ;
 
     }
-    
+
+    private function isCheckbox($field) {
+        return $this->Proj->metadata[$field]['element_type'] === 'checkbox';
+    }
+
+    private function cbLov($field) {
+        return $this->Proj->metadata[$field]['element_enum'];
+    }
+
+    private function pivotCbHdr($headers) {
+        $newHeaders = [];
+        foreach  ($headers as $field) {
+            if ($this->isCheckbox($field)) {
+                $lovstr = $this->cbLov($field);
+                $lov = explode("\\n ", $lovstr);
+                for($i = 1; $i < count($lov) + 1; ++$i) {
+                    $newHeaders[] = $field . '___' . $i;
+                }
+            } else {
+                $newHeaders[] = $field;
+            }
+        }
+
+        return $newHeaders;
+    }
+
+    private function pivotCbCell($field, $cellValue) {
+        $newCells = [];
+        $loSetValues = explode("\n",$cellValue );
+        if ($this->isCheckbox($field)) {
+            $lovstr = $this->cbLov($field);
+            $lov = explode("\\n ", $lovstr);
+            $j = 0;// this will keep track of where we are in the list of selected values
+            for($i = 0; $i < count($lov) ; ++$i) {
+                // consider each possible value from the data dictionary in turn
+                if (strpos($lov[$i], $loSetValues[$j]) === FALSE) {
+                    $newCells[] = '';
+                } else {
+                    $newCells[] = $loSetValues[$j];
+                    $j++;
+                }
+            }
+        } else {
+            $newCells[] = $cellValue;
+        }
+
+        return $newCells;
+    }
+
 }
 
+/*current : (
+[0] => Array
+        ( [0] => 1
+            [1] => 2020-07-09
+            [2] => One         )
+[1] => Array
+        (  [0] => 3
+            [1] => 2020-10-07
+            [2] => One \nTwo   ) )
+target : (
+[0] => Array
+        ( [0] => 1
+            [1] => 2020-07-09
+            [2] => One
+            [3] =>
+            [4] =>          )
+[1] => Array
+        (  [0] => 3
+            [1] => 2020-10-07
+            [2] => One
+            [3] => Two
+            [4] =>          )
+*/
