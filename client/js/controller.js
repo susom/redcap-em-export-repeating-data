@@ -302,6 +302,11 @@ function getExportJson(is_preview, formdata, record_count) {
             struct.raw_or_label = item.value;
         }
     });
+    // now patch the filter spec so that the last filter in the list uses AND. When OR is specified, the SQL breaks
+    var nFilters = filters.length;
+    if (nFilters > 0) {
+        filters[nFilters - 1].boolean = 'AND';
+    }
 
     // assemble the list of visible panels, in order, with their status
     $(".panel:visible").each(function() {
