@@ -8,7 +8,6 @@ namespace Stanford\ExportRepeatingData;
 
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 
-// something is taking a while to load. is this it?
 // start debug setup part 1
 // microtime(true) returns the unix timestamp plus milliseconds as a float
 $starttime = microtime(true);
@@ -67,7 +66,7 @@ foreach ($instruments as $key => $instrument) {
                 <?php
                 $fields = $module->getFieldNames($key);
                 foreach ($fields as $field) {
-                    if ($dataDict[$field]['field_type'] === 'descriptive') {
+                    if ($dataDict[$field]['element_type'] === 'descriptive') {
                         continue;
                     }
                     ?>

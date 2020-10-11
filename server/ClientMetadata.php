@@ -65,7 +65,7 @@ class ClientMetadata
                 return instrumentLookup[fieldOrInstrumentName];
             }
 
-            function  appendInputs(element) {
+            function  appendInputs(element, parent, restore, settings) {
                 var fieldname = element.html();
                 $.ajax({
                     url: $("#base-url").val(),
@@ -75,6 +75,13 @@ class ClientMetadata
                         data = '<input type="hidden" name="field_name" value="'+fieldname+'"/>'
                             + data + appendFieldFilterControls();
                         element.append(data);
+                        element.appendTo(parent);
+                        if (restore) {
+                            element.find('.limiter-operator').val(settings.operator);
+                            element.find('.limiter-value').val(settings.param);
+                            element.find('select[name^="limiter_connector"]').val(settings.boolean);
+                        }
+
                     },
                     error: function (request, error) {
                         alert("Request: " + JSON.stringify(request));
@@ -118,15 +125,15 @@ class ClientMetadata
                             if (panelHeading.hasClass('ref-tier-2')) {
                                 // look for the instance linked panel; only tag as tier-3 if present
                                 var badge = $(this).find(".badge-primary");
-                                var linkedToInstrument = badge.text().substr(22);
+                                var linkedToInstrument = badge.text().substr(22).trim();
                                 // console.log(instrumentName + ' linked to '+ linkedToInstrument);
                                 targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
                                 $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                                 // sigh. "linkedToInstrument in repeatingForms" should work but does not
-                                // so do it the hard way
+                                // perhaps due to trailing blanks? so do it the hard way
                                 linkedInstrumentFound  = false;
                                 for (let i = 0; i < repeatingForms.length; i++) {
-                                    linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i] === linkedToInstrument
+                                    linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i].trim() === linkedToInstrument
                                 }
 
                                 if (linkedInstrumentFound) {
@@ -243,11 +250,12 @@ class ClientMetadata
                         {
                             $( "#tip_exporting_all_rows" ).remove();
                             // Copy the draggable into the destination box
-                            var $copy =  ui.draggable.clone();
+                            var copy =  ui.draggable.clone();
                             // console.log('copy is ');
                             // console.log($copy.html());
-                            appendInputs($copy); // and call a REDCap API to decorate with suitable controls
-                            $copy.appendTo(this);
+
+                            appendInputs(copy, this, false, null); // and call a REDCap API to decorate with suitable controls
+
                         }
                     });
 

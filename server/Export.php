@@ -163,7 +163,7 @@ class Export
     {
         global $module;
         // stub out the new record count feature
-        if ($json->record_count == true) {
+        if ($json->record_count === 'true') {
             // TODO implement this query and return counts for the supplied filter list
             $result["count"] = 100;
             return $result;

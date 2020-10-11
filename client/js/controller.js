@@ -25,7 +25,7 @@ $(function () {
             console.log(error);
         }
     });
-    // drag n drop file upload for UI settings restore from save file
+    // attach a drag n drop file upload handler for UI settings restore from save file
     $('#holder').on({
         'dragover dragenter': function(e) {
             e.preventDefault();
@@ -61,6 +61,8 @@ $(function () {
 });
 
 function applyModel(model) {
+    $("#row_filter").find(".list-group-item").remove();
+    $(".panel").hide();
     if( !model.hasOwnProperty('reportname')) {
         showError("Unrecognized file type. To restore settings, please select a file previously saved by clicking 'Save Settings'");
         return;
@@ -83,7 +85,8 @@ function applyModel(model) {
         $( "#tip_exporting_all_rows" ).remove();
     }
     for ( i=0; i < values.length; i++) {
-        console.log(values[i]);
+        var copy = $('<div class="list-group-item" style="padding-left:2.5rem;">' + values[i].field + '</div>');
+        appendInputs(copy, $( "#row_filter" ), true, values[i]);
     }
 }
 
@@ -123,12 +126,12 @@ function runQuery(preview, record_count) {
             } else {
                 if (preview) {
                     var table_data = tableize(response.headers, response.data);
-                    //console.log(table_data);
+                    // console.log(table_data);
                     $("#preview-table-div").replaceWith(table_data);
                     $('#preview-table').DataTable();
                     $("#datatable").show();
                 } else if (record_count) {
-                    console.log (response);
+                    // console.log (response);
                     var count = response.count;
                     $("#count-display").html( ' matching records: ' + count);
                 } else {
@@ -345,7 +348,7 @@ function convertToCSV(objArray) {
             if (array[i][index] && array[i][index].includes(",")) {
                 line += '"';
             }
-            line += escape_doublquotes(array[i][index]);
+            line += escape_doublequotes(array[i][index]);
             if (array[i][index] && array[i][index].includes(",")) {
                 line += '"';
             }
@@ -357,7 +360,7 @@ function convertToCSV(objArray) {
     return str;
 }
 
-function escape_doublquotes(data) {
+function escape_doublequotes(data) {
     if (!data) return data;
     return data.replace(/["]/g, '""');
 }
