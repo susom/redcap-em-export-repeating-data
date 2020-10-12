@@ -33,6 +33,9 @@ class Export
 
         // oddly enough this operation is not idempotent. the incoming arrays get converted into objects
         $json_inp = json_decode(json_encode($config));
+
+        $module->emDebug("Input JSON :" . print_r($json_inp, TRUE)) ;
+
         $json = json_decode('{ "forms" : []}');
         $json->raw_or_label = $json_inp->raw_or_label;
         // look through the incoming spec for the primary-repeating form, since that will be the join key
@@ -58,6 +61,7 @@ class Export
 
         // stash the preview setting, the SQL generation step needs to know
         $json->preview = $json_inp->preview ;  // $config['preview'];
+
         foreach ($json_inp->columns as $column) {
             $instrument = $column->instrument;
             if (!isset($json->forms[$instrument])) {
@@ -162,12 +166,13 @@ class Export
     function runQuery($json)
     {
         global $module;
+
         // stub out the new record count feature
-        if ($json->record_count === 'true') {
+        //if ($json->record_count === 'true') {
             // TODO implement this query and return counts for the supplied filter list
-            $result["count"] = 100;
-            return $result;
-        }
+        //    $result["count"] = 100;
+        //    return $result;
+        //}
 
         $rowLimit = $module->getProjectSetting('preview-record-limit');
         if (! isset($rowLimit)) {
@@ -182,7 +187,10 @@ class Export
         $project_id = $this->Proj->project_id;
         $select = "" ;
         $from = "" ;
-        $fields = array() ;
+
+        $select_fields = array() ;  // Fields which will be returned to the caller        
+        $all_fields = array() ;  // fields including the filters in the selected instruments
+
         $recordFieldIncluded = ! isset($json->record_id) ;
         $module->emDebug('is record_id included? ' . $recordFieldIncluded . ' ' . $json->record_id);
         $primaryFormName = "" ;
@@ -191,7 +199,8 @@ class Export
         foreach ($json->forms as $form) {
             // Doing coalesce so nulls will be displayed as '' in output reports
             foreach($form->fields as $field) {
-                $fields[] = $field ;
+                $select_fields[] = $field ;
+                $all_fields[] = $field ;
                 $select = $select . ( ($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field ;
             }
         }
@@ -226,6 +235,14 @@ class Export
                 $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' then $valSel end separator '\\n') " . $field . " ";
             }
             
+            // Add to the view, if it is included in the filters also
+            foreach($json->filters as $filter) {
+                if ($filter->instrument == $form->form_name && !in_array($filter->field, $select_fields)) {
+                    $all_fields[] = $filter->field ;
+                    $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') " . $filter->field . " ";
+                }
+            }
+
             // date proximity is a very special case - this is the first try - not sure about the performace yet
             // Test with realistic data set and change if needed.
             if ($form->join_type == "date_proximity") {
@@ -311,15 +328,19 @@ class Export
         }
 
         // If record_id is not chosen add it to the SQL
-        if ($recordFieldIncluded)
-            $sql = "Select " . $select . " " . $from ;
-        else {
-            $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
-            array_unshift($fields, $json->record_id) ;   // add record_id as the first field in the fields array
+        if ($json->record_count === 'true') {
+            $sql = "Select count(*) as row_count " . $from ;
+        } else {
+            if ($recordFieldIncluded)
+                $sql = "Select " . $select . " " . $from ;
+            else {
+                $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
+                array_unshift($select_fields, $json->record_id) ;   // add record_id as the first field in the fields array
+            }
         }
-        
+
         if (isset($json->filters)) {
-            $filtersql = $this->processFilters($json->filters) ;
+            $filtersql = $this->processFilters($json->filters, $all_fields, $valSel) ;
             if (strlen($filtersql) > 0) {
                 $sql = $sql . " where " . $filtersql ;
             }            
@@ -342,22 +363,27 @@ class Export
                 $result["status"] = 0;
                 $result["message"] = $dberr;
             } else {
-                $data = [];
-                if ("false" == $json->preview) {
-                    // when exporting .csv, the return csv is in $data
-                    $data[] = $this->pivotCbHdr($fields) ;  // $headers;
-                }
-                while ($row = db_fetch_assoc($rptdata)) {
-                    $cells = [];
-                    for ($k = 0 ; $k < count($fields); $k++) {
-                        $cells = array_merge($cells , $this->pivotCbCell($fields[$k], $row[$fields[$k]]));
+                if ($json->record_count === 'true') {
+                    $row = db_fetch_assoc($rptdata) ;
+                    $result["count"] = $row["row_count"] ;
+                } else {
+                    $data = [];
+                    if ("false" == $json->preview) {
+                        // when exporting .csv, the return csv is in $data
+                        $data[] = $this->pivotCbHdr($select_fields) ;  // $headers;
                     }
-                    $data[] = $cells;
-                    $module->emDebug('merged: ' . print_r($data, TRUE));
+                    while ($row = db_fetch_assoc($rptdata)) {
+                        $cells = [];
+                        for ($k = 0 ; $k < count($select_fields); $k++) {
+                            $cells = array_merge($cells , $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]]));
+                        }
+                        $data[] = $cells;
+                        //$module->emDebug('merged: ' . print_r($data, TRUE));
+                    }
+                    // when previewing, the return data is in $result, which includes $data
+                    $result["headers"] = $this->pivotCbHdr($select_fields) ;
+                    $result["data"] = $data;
                 }
-                // when previewing, the return data is in $result, which includes $data
-                $result["headers"] = $this->pivotCbHdr($fields) ;
-                $result["data"] = $data;
             }
         } else {
             $result["status"] = 0;
@@ -394,7 +420,11 @@ class Export
     "time" (HH:MM)
     "zipcode" Zipcode (U.S.)
     */    
-    function processFilters($filters) {
+    function processFilters($filters, $all_fields, $valSel) {
+
+        global $module ;
+
+        $module->emDebug('all fields :' . print_r($all_fields, TRUE)) ;
 
         $filtersql = "" ;
 
@@ -407,7 +437,7 @@ class Export
                 $filter->validation = "integer" ;
             */
 
-            $col = $filter->instrument . "." . $filter->field ;            
+            $col = $filter->instrument . "." . $filter->field ;
             $val = db_escape($filter->param) ;
             $dt = "string" ;
 
@@ -453,7 +483,19 @@ class Export
             elseif ($filter->operator == "UNCHECKED")
                 $filterstr = $col . " not like '%" . $val . "%'";
                 
-            $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
+            if (!in_array($filter->field, $all_fields)) {
+            
+                $filterstr = str_replace($col, $valSel, $filterstr) ;
+
+                $filterstr = " exists (select 1 from redcap_data rd, redcap_metadata rm " .
+                             "    where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $this->Proj->project_id . " and " . 
+                             "         rd.field_name = '" .$filter->field . "' and " . $filterstr . 
+                             "   and rd.record  = person.record ) " ;
+
+                $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";             
+            } else {         
+                $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
+            }
         }
 
         if (substr($filtersql, -4) == "AND " || substr($filtersql, -4) == "OR ")
