@@ -167,13 +167,6 @@ class Export
     {
         global $module;
 
-        // stub out the new record count feature
-        //if ($json->record_count === 'true') {
-            // TODO implement this query and return counts for the supplied filter list
-        //    $result["count"] = 100;
-        //    return $result;
-        //}
-
         $rowLimit = $module->getProjectSetting('preview-record-limit');
         if (! isset($rowLimit)) {
             $rowLimit = 200;
@@ -187,6 +180,38 @@ class Export
         $project_id = $this->Proj->project_id;
         $select = "" ;
         $from = "" ;
+
+        // record count feature - as explained by Susan
+        if ($json->record_count === 'true') {
+
+            $sql = "select count(distinct rdm.record) as row_count from redcap_data rdm where rdm.project_id = " .$project_id . " AND " ;
+
+            foreach ($json->filters as $filterIdx => $filter) {
+
+                $filterstr = $this->filter_string($filter) ;
+
+                $filterstr = str_replace($filter->instrument . '.' . $filter->field, $valSel, $filterstr) ;
+
+                $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name and " .
+                              "     rd.project_id = " . $project_id . " and rd.field_name = '" . $filter->field . " ' and " .
+                                $filterstr . ") " . " " . $filter->boolean . " ";
+            }
+
+            if (substr($sql, -4) == "AND ")
+                $sql = substr($sql, 0, strlen($sql) - 4) ;
+
+            if (substr($sql, -3) == "OR ")
+                $sql = substr($sql, 0, strlen($sql) - 3) ;
+
+            $module->emDebug("SQL for COUNT : " . $sql) ;
+
+            $result1 = db_query($sql) ;
+
+            $row = db_fetch_assoc($result1) ;
+
+            $result["count"] = $row["row_count"];
+            return $result;
+        }
 
         $select_fields = array() ;  // Fields which will be returned to the caller        
         $all_fields = array() ;  // fields including the filters in the selected instruments
@@ -320,23 +345,14 @@ class Export
                     $from = $from . " ) " ;
                 }
             }                            
-
-            // Doing coalesce so nulls will be displayed as '' in output reports
-            //foreach($form->fields as $field) {
-            //    $select = $select . ( ($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field ;
-            //}            
         }
 
         // If record_id is not chosen add it to the SQL
-        if ($json->record_count === 'true') {
-            $sql = "Select count(*) as row_count " . $from ;
-        } else {
-            if ($recordFieldIncluded)
-                $sql = "Select " . $select . " " . $from ;
-            else {
-                $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
-                array_unshift($select_fields, $json->record_id) ;   // add record_id as the first field in the fields array
-            }
+        if ($recordFieldIncluded)
+            $sql = "Select " . $select . " " . $from ;
+        else {
+            $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from ;
+            array_unshift($select_fields, $json->record_id) ;   // add record_id as the first field in the fields array
         }
 
         if (isset($json->filters)) {
@@ -363,27 +379,22 @@ class Export
                 $result["status"] = 0;
                 $result["message"] = $dberr;
             } else {
-                if ($json->record_count === 'true') {
-                    $row = db_fetch_assoc($rptdata) ;
-                    $result["count"] = $row["row_count"] ;
-                } else {
-                    $data = [];
-                    if ("false" == $json->preview) {
-                        // when exporting .csv, the return csv is in $data
-                        $data[] = $this->pivotCbHdr($select_fields) ;  // $headers;
-                    }
-                    while ($row = db_fetch_assoc($rptdata)) {
-                        $cells = [];
-                        for ($k = 0 ; $k < count($select_fields); $k++) {
-                            $cells = array_merge($cells , $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]]));
-                        }
-                        $data[] = $cells;
-                        //$module->emDebug('merged: ' . print_r($data, TRUE));
-                    }
-                    // when previewing, the return data is in $result, which includes $data
-                    $result["headers"] = $this->pivotCbHdr($select_fields) ;
-                    $result["data"] = $data;
+                $data = [];
+                if ("false" == $json->preview) {
+                    // when exporting .csv, the return csv is in $data
+                    $data[] = $this->pivotCbHdr($select_fields) ;  // $headers;
                 }
+                while ($row = db_fetch_assoc($rptdata)) {
+                    $cells = [];
+                    for ($k = 0 ; $k < count($select_fields); $k++) {
+                        $cells = array_merge($cells , $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]]));
+                    }
+                    $data[] = $cells;
+                    //$module->emDebug('merged: ' . print_r($data, TRUE));
+                }
+                // when previewing, the return data is in $result, which includes $data
+                $result["headers"] = $this->pivotCbHdr($select_fields) ;
+                $result["data"] = $data;
             }
         } else {
             $result["status"] = 0;
@@ -402,6 +413,55 @@ class Export
         return (substr($string, -$len) === $endString);
     }
 
+    function filter_string($filter) {
+        $col = $filter->instrument . "." . $filter->field ;
+        $val = db_escape($filter->param) ;
+        $dt = "string" ;
+
+        if ($this->endsWith($filter->validation, "_dmy")) {
+            $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+            $val = "str_to_date('" . $val . "', '%d-%m-%Y')" ;
+            $dt = "date" ;
+        } elseif ($this->endsWith($filter->validation, "_mdy")) {
+            $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+            $val = "str_to_date('" . $val . "', '%m-%d-%Y')" ;
+            $dt = "date" ;
+        } elseif ($this->endsWith($filter->validation, "_ymd")) {
+            $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
+            $val = "str_to_date('" . $val . "', '%Y-%m-%d')" ;
+            $dt = "date" ;
+        }
+        
+        if (($filter->validation == "integer" || $filter->validation == "number"))
+            $dt = "number" ;
+        
+        if ($filter->operator == "E")
+            $filterstr = ($dt == "string") ? ($col . " = '" . $val . "'") : ($col . " = " . $val) ;
+        elseif ($filter->operator == "NE")
+            $filterstr = ($dt == "string") ? ($col . " <> '" . $val . "'") : ($col . " <> " . $val) ;
+        elseif ($filter->operator == "CONTAINS")
+            $filterstr = $col . " like '%" . $val . "%'";
+        elseif ($filter->operator == "NOT_CONTAIN")
+            $filterstr = $col . " not like '%" . $val . "%'";
+        elseif ($filter->operator == "STARTS_WITH")
+            $filterstr = $col . " like '" . $val . "%'";
+        elseif ($filter->operator == "ENDS_WITH")
+            $filterstr = $col . " like '%" . $val . "'";
+        elseif ($filter->operator == "LT")
+            $filterstr = ($dt == "string") ? ($col . " < '" . $val . "'") : ($col . " < " . $val) ;                
+        elseif ($filter->operator == "LTE")
+            $filterstr = ($dt == "string") ? ($col . " <= '" . $val . "'") : ($col . " <= " . $val) ;
+        elseif ($filter->operator == "GT")
+            $filterstr = ($dt == "string") ? ($col . " > '" . $val . "'") : ($col . " > " . $val) ;                
+        elseif ($filter->operator == "GTE")
+            $filterstr = ($dt == "string") ? ($col . " >= '" . $val . "'") : ($col . " >= " . $val) ;
+        elseif ($filter->operator == "CHECKED")
+            $filterstr = $col . " like '%" . $val . "%'";
+        elseif ($filter->operator == "UNCHECKED")
+            $filterstr = $col . " not like '%" . $val . "%'";        
+        
+        return $filterstr ;
+    }
     // Just the raw format values. v1 - needs iteration
     /*  Possible Validation types - Right now, code handles only dates, numbers as special case
     "date_dmy"
@@ -430,62 +490,11 @@ class Export
 
         foreach ($filters as $filter) {
             
-            /* To test 
-            if ($filter->field == "pft_test_date") 
-                $filter->validation = "date_mdy" ;
-            if ($filter->field == "no_of_tests") 
-                $filter->validation = "integer" ;
-            */
-
-            $col = $filter->instrument . "." . $filter->field ;
-            $val = db_escape($filter->param) ;
-            $dt = "string" ;
-
-            if ($this->endsWith($filter->validation, "_dmy")) {
-                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
-                $val = "str_to_date('" . $val . "', '%d-%m-%Y')" ;
-                $dt = "date" ;
-            } elseif ($this->endsWith($filter->validation, "_mdy")) {
-                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
-                $val = "str_to_date('" . $val . "', '%m-%d-%Y')" ;
-                $dt = "date" ;
-            } elseif ($this->endsWith($filter->validation, "_ymd")) {
-                $col = "str_to_date(" . $col . ", '%Y-%m-%d')" ;
-                $val = "str_to_date('" . $val . "', '%Y-%m-%d')" ;
-                $dt = "date" ;
-            }
-            
-            if (($filter->validation == "integer" || $filter->validation == "number"))
-                $dt = "number" ;
-            
-            if ($filter->operator == "E")
-                $filterstr = ($dt == "string") ? ($col . " = '" . $val . "'") : ($col . " = " . $val) ;
-            elseif ($filter->operator == "NE")
-                $filterstr = ($dt == "string") ? ($col . " <> '" . $val . "'") : ($col . " <> " . $val) ;
-            elseif ($filter->operator == "CONTAINS")
-                $filterstr = $col . " like '%" . $val . "%'";
-            elseif ($filter->operator == "NOT_CONTAIN")
-                $filterstr = $col . " not like '%" . $val . "%'";
-            elseif ($filter->operator == "STARTS_WITH")
-                $filterstr = $col . " like '" . $val . "%'";
-            elseif ($filter->operator == "ENDS_WITH")
-                $filterstr = $col . " like '%" . $val . "'";
-            elseif ($filter->operator == "LT")
-                $filterstr = ($dt == "string") ? ($col . " < '" . $val . "'") : ($col . " < " . $val) ;                
-            elseif ($filter->operator == "LTE")
-                $filterstr = ($dt == "string") ? ($col . " <= '" . $val . "'") : ($col . " <= " . $val) ;
-            elseif ($filter->operator == "GT")
-                $filterstr = ($dt == "string") ? ($col . " > '" . $val . "'") : ($col . " > " . $val) ;                
-            elseif ($filter->operator == "GTE")
-                $filterstr = ($dt == "string") ? ($col . " >= '" . $val . "'") : ($col . " >= " . $val) ;
-            elseif ($filter->operator == "CHECKED")
-                $filterstr = $col . " like '%" . $val . "%'";
-            elseif ($filter->operator == "UNCHECKED")
-                $filterstr = $col . " not like '%" . $val . "%'";
+            $filterstr = $this->filter_string($filter) ;
                 
             if (!in_array($filter->field, $all_fields)) {
             
-                $filterstr = str_replace($col, $valSel, $filterstr) ;
+                $filterstr = str_replace($filter->instrument . "." . $filter->field, $valSel, $filterstr) ;
 
                 $filterstr = " exists (select 1 from redcap_data rd, redcap_metadata rm " .
                              "    where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $this->Proj->project_id . " and " . 
