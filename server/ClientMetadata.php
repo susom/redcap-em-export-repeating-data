@@ -164,7 +164,8 @@ class ClientMetadata
 
             function tickAllPanelCheckboxes (label, value) {
                 var selector1 = "." + getInstrumentForField(label);
-                var selector2 = "#" + getInstrumentForField(label);
+                var selector2 = "#" + getInstrumentForField(label) + "_cb";
+
                 var checkBoxes = $( selector1 );
                 checkBoxes.prop("checked", value);
                 checkBoxes = $( selector2 );
@@ -177,8 +178,8 @@ class ClientMetadata
                 <?php
                 foreach ($this->instruments as $key => $instrument) {
                 ?>
-                $("#<?php echo $key ?>").click( function () {
-                    var checked = $("#<?php echo $key ?>"); <!-- the header checkbox has the instrument name as its id -->
+                $("#<?php echo $key ?>_cb").click( function () {
+                    var checked = $("#<?php echo $key ?>_cb"); <!-- the header checkbox has the instrument name as its id -->
                     var checkBoxes = $(".<?php echo $key ?>"); <!-- the associated fields all have the instrument name as their class -->
                     checkBoxes.prop("checked", checked.prop("checked"));
                 });

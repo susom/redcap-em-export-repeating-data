@@ -209,8 +209,8 @@ class InstrumentMetadata
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
 
-            if (contains($ddEntry['misc'],'@FORMINSTANCE')) {
-                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE',  $ddEntry['misc']);
+            if (contains($ddEntry['misc'], '@FORMINSTANCE')) {
+                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE', $ddEntry['misc']);
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $parent_instrument;
                 $lookupTable[$ddEntry['form_name']]['foreign_key_field'] = $ddEntry['field_name'];
                 // add one more entry, indicating that the parent is linked to the child
@@ -223,15 +223,17 @@ class InstrumentMetadata
             }
 
             // make a note of the fields tagged as @PRINCIPAL_DATE for later use when displaying the secondary table join options
-            if (contains($ddEntry['misc'],'@PRINCIPAL_DATE')) {
-                $lookupTable[$ddEntry['form_name']]['principal_date']  = $ddEntry['field_name'];
+            if (contains($ddEntry['misc'], '@PRINCIPAL_DATE')) {
+                $lookupTable[$ddEntry['form_name']]['principal_date'] = $ddEntry['field_name'];
             }
             // last but not least, stash a local copy of the validation string
-            $lookupTable[$ddEntry['field_name'] . "@validation"]  = $ddEntry['element_validation_type'];
+            $lookupTable[$ddEntry['field_name'] . "@validation"] = $ddEntry['element_validation_type'];
             // and of the labels associated with structured inputs (dropdowns, radiobuttons and checkboxes)
-            $lookupTable[$ddEntry['field_name'] . "@lov"]  = $ddEntry['element_enum'];
+            if ('calc' !== $ddEntry['element_type']) {
+                // calculations cause javascript errors so filter them out
+                $lookupTable[$ddEntry['field_name'] . "@lov"] = $ddEntry['element_enum'];
+            }
         }
-
         $this->resultArray = $lookupTable;
     }
 
