@@ -214,6 +214,17 @@ function tableize_col(col, index) {
     return '<td>' + col + '</td>';
 }
 
+function toggleIcon(id) {
+    jqueryElement = $(id);
+    if (jqueryElement.hasClass('fa-angle-down')) {
+        jqueryElement.removeClass('fa-angle-down');
+        jqueryElement.addClass('fa-angle-right');
+    } else {
+        jqueryElement.removeClass('fa-angle-right');
+        jqueryElement.addClass('fa-angle-down');
+    }
+}
+
 function saveExportJson() {
     var formdata = $("#export-repeating").serializeArray();
     var json = getExportJson(false, formdata, false);

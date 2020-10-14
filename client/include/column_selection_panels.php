@@ -55,13 +55,17 @@ foreach ($instruments as $key => $instrument) {
     ?>
     <div style="display: none;" class="ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
         <div class="panel-heading <?php echo $cardinality?> ref-<?php echo $cardinality?>">
+            <button class="badge fas fa-angle-down" type="button" data-toggle="collapse" data-target="#collapse-<?php echo $key ?>"
+                    aria-expanded="false" aria-controls="collapse-<?php echo $key ?>" onclick="toggleIcon('#collapse-ctl-<?php echo $key ?>')" id="collapse-ctl-<?php echo $key ?>">
+
+            </button>
             <label for="chb1" class="pr-1"><?php echo $instrument ?> <input type="checkbox"  id="<?php echo $key ?>_cb"  ></label>
-            <?php echo $tag ?>
             <button type="button" class="delete-panel close pr-2" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
+            <?php echo $tag ?>
         </div>
-        <div class="panel-body">
+        <div class="panel-body collapse show" id="collapse-<?php echo $key ?>">
             <div class="row">
                 <?php
                 $fields = $module->getFieldNames($key);
