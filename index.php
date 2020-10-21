@@ -73,7 +73,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     <button type="button"  onclick="saveExportJson()" id="save_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Save Settings</button>
                 </div>
                 <div class="col-md-2  col-sm-3 cardinal emphatic header nowrap text-left">
-                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Restore Settings</button>
+                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>
                 </div>
             </div>
 
@@ -83,10 +83,10 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             <div class="row">
 
                 <!-- left hand side -->
-                <div class="col-md-3 pt-3">
+                <div class="col-md-3 pt-3 overflow-auto" style="max-height: 750px;">
                     <!-- this div is selected by bstreeview.js to render content specified by the Json at the bottom of the page -->
                     <!-- also note we use a customized version of bstreeview that makes each element draggable  -->
-                    <div id="tree" class="bstreeview" >
+                    <div id="tree" class="bstreeview " >
 
                     </div>
 
