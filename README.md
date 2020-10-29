@@ -1,5 +1,6 @@
 # Export Repeating Data External Module
-
+### Users' Guide
+The end-user documentation for this EM is https://docs.google.com/document/d/13qn4vGgZ6FmWJA96Q0aCPPcznCEKsX4LM61KEXxPKUk/
 ### What does it do?
 Native support for data reporting and export in REDCap does not work
 particularly well with repeating forms data. 
@@ -61,5 +62,17 @@ by the [Instance Table EM](https://github.com/lsgs/redcap-instance-table),
 a companion EM to "Instance Select". The "Instance Select" and "Instance Table" EMs work well 
 together; a project that uses them both in conjunction with this reporting EM can produce
 a plausible approximation of an underlying relational database.
+### Project Configuration Instructions
+To enable this EM on a project with repeating data, you will likely need to add action tags to indicate the data relationships.
+If your project fits entirely within scenarios 1 and 2 above, that is, you have at most one
+form with repeating data, no additional configuration is required. 
 
-Last Updated: 09/29/2020 12:57pm
+If you have more than one repeating form, however, you need to add action tags as follows:
+A) All repeating forms with at least one date field needs the @PRINCIPAL_DATE action tag
+applied to the primary date field for that form, and
+B) All child forms should have an @FORMINSTANCE=parent_instrument action tag applied to
+one of the fields in the form.  Assuming you are also configuring an instance table
+in the parent to summarize the child records, the obvious field to add this action tag
+to is the field used to capture the parent instance number, but any field on the child instrument will work.
+
+Last Updated: 10/29/2020 12:57pm
