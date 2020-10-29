@@ -100,10 +100,15 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
                 <!-- right hand side -->
                 <div class="col-md-9 pt-3">
-                    <span><div class="cardinal">Filter Rows - Drag and Drop from left menu</div><div id="count-display" class="mr-1" style="float:right"> matching records: 0</div><button type="button" class="mr-1 mt-1 badge badge-light" style="float:right" onclick="runQuery(false, true)">count</button></span>
+                    <span><div class="cardinal">Filter Rows - Drag and Drop from left menu</div>
                     <div class="container droptarget" >
-                        <div id="row_filter" class="list-group filters-fields " style="min-height: 50px; width: 100%;">
-                            <div class="grey cbox-panel" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>
+                            <div id="count-display" class="mr-1" style="float:right"> matching records: 0</div><button type="button" class="mr-1 mt-1 badge badge-light" style="float:right" onclick="runQuery(false, true)">count</button>
+                        <div class="spinner-border text-secondary mt-1 mr-1 mini-spin" role="status" id="count-running" style="display: none; float:right">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </span>
+                    <div id="row_filter" class="list-group filters-fields " style="min-height: 50px; width: 100%;">
+                        <div class="grey cbox-panel" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>
 
                         </div>
                     </div>
@@ -125,19 +130,34 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     </div>
 
                     <div class="col-md-9 ml-n2 mt-5">
-                        <button type="button"  onclick="runQuery(true, false)"  id="preview" class=" jqbuttonmed ui-button ui-corner-all ui-widget">
-                            <i class="fas fa-eye"></i> Preview Data
-                        </button>
-                        <button type="button" id="do_export" onclick="runQuery(false, false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="float:right"> <i class="fas fa-file-download"></i> Export Data</button>
+                        <table width="100%"><tr><td>
+                                    <button type="button"  onclick="runQuery(true, false)"  id="preview" class=" jqbuttonmed ui-button ui-corner-all ui-widget">
+                                        <i class="fas fa-eye"></i> Preview Data
+                                    </button>
+                                </td><td>
+                                    <button type="button" id="do_export" onclick="runQuery(false, false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" style="">
+                                        <i class="fas fa-file-download"></i> Export Data
+                                    </button>
+                                </td></tr>
+                            <tr><td>
+                                    <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="longop-running" style="display:none">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </td><td>
+                                    <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="export-running" style="display:none">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </td></tr>
+                        </table>
+
                     </div>
 
-                    <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="longop-running" style="display: none;">
-                        <span class="sr-only">Loading...</span>
-                    </div>
 
 
 
-                    <div class =" ml-n2 mt-5" id="data-error">
+
+
+                <div class =" ml-n2 mt-5" id="data-error">
                         <div id="data-error-message"></div>
                     </div>
 

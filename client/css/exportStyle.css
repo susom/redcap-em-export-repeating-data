@@ -54,6 +54,11 @@
     width: 4em;
     height: 4em;
 }
+
+.mini-spin {
+    width: 15px;
+    height: 15px;
+}
 .tier-error {
     background-color: #ffafaf;
 }

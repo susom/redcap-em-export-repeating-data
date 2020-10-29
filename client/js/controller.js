@@ -112,7 +112,13 @@ function runQuery(preview, record_count) {
         showError("You must drag at least one field from the list on the left and drop it into the 'Specify Report Columns' box above. ");
         return;
     }
-    $("#longop-running").show();
+    if (record_count === true) {
+        $("#count-running").show();
+    } else if (preview === true) {
+        $("#longop-running").show();
+    } else {
+        $("#export-running").show();
+    }
     $.ajax({
         url: $("#report-submit").val(),
         data: json,
@@ -120,6 +126,8 @@ function runQuery(preview, record_count) {
         type: 'POST',
         dataType: 'json',
         success: function (response) {
+            $("#count-running").hide();
+            $("#export-running").hide();
             $("#longop-running").hide();
             if (response.status === 0) {
                 showError("Error: " + response.message);
