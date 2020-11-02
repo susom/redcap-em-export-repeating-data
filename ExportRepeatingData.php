@@ -389,7 +389,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     public function downloadCSVFile($filename, $data)
     {
-        $data = $this->prepareDataForDownload($data['data']);
+        $data = trim($this->prepareDataForDownload($data['data']));
         // Download file and then delete it from the server
         header('Pragma: anytextexeptno-cache', true);
         header('Content-Type: application/octet-stream"');
