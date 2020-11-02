@@ -10,9 +10,17 @@ try {
         throw new \LogicException('You cant be here');
     }
 
+    if (isset($_POST['cardinality'])) {
+        // we only want to validate the temp file when exporting data.
+        $module->getExport()->checkTempFile(json_encode($_POST));
+        // now save the new temp file and date if changed;
+        $module->prepareTempFile();
+    }
+
     /**
      * Run the SQL corresponding to the user supplied spec
      */
+
     $module->displayContent($_POST);
 
 } catch (\LogicException $e) {

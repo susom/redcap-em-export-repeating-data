@@ -8,6 +8,9 @@ require_once(__DIR__ . "/server/InstrumentMetadata.php");
 require_once(__DIR__ . "/server/Export.php");
 require_once(__DIR__ . "/server/ClientMetadata.php");
 
+
+define('DEFAULT_NUMBER_OF_CACHE_DAYS', 5);
+
 /**
  * Class ExportRepeatingData
  * @package Stanford\ExportRepeatingData
@@ -50,15 +53,22 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
                 $indexOf4thslash = $this->strposX($referer, "/", 4);
                 $this->pathPrefix = substr($referer, 0, $indexOf4thslash);
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
-                $this->export = new Export($this->getProject(), $this->instrumentMetadata);
+                $this->setExport(new Export($this->getProject(), $this->instrumentMetadata, $this->getProjectSetting("temp-file-days-to-expire") ? $this->getProjectSetting("temp-file-days-to-expire") : DEFAULT_NUMBER_OF_CACHE_DAYS, $this->getProjectSetting("temp-file-config")));
                 $this->clientMetadata = new ClientMetadata();
-
             }
 
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
 
+    }
+
+    public function prepareTempFile()
+    {
+        // if path changed or created then save it and new timestamp
+        if ($this->export->getTempFileConfig() != $this->getProjectSetting('temp-file-config')) {
+            $this->setProjectSetting('temp-file-config', $this->export->getTempFileConfig());
+        }
     }
 
     /**
@@ -68,7 +78,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @param $number integer > 0
      * @return int
      */
-    private function strposX($haystack, $needle, $number){
+    private function strposX($haystack, $needle, $number)
+    {
         if ($number == '1') {
             return strpos($haystack, $needle);
         } elseif($number > '1') {
@@ -287,22 +298,33 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      */
     public function displayContent($config)
     {
-        // start debug setup part 1
-        // microtime(true) returns the unix timestamp plus milliseconds as a float
-        $starttime = microtime(true);
-        $this->emDebug("displayContent launching SQL query");
-        // end debug setup part 1
+        if ($this->getExport()->isUseTempFile()) {
+            $output = file_get_contents($this->getExport()->getTempFilePath());
+        } else {
+            // start debug setup part 1
+            // microtime(true) returns the unix timestamp plus milliseconds as a float
+            $starttime = microtime(true);
+            $this->emDebug("displayContent launching SQL query");
+            // end debug setup part 1
 
-        $result = $this->export->buildAndRunQuery($config);
+            $result = $this->export->buildAndRunQuery($config);
 
-        // start debug setup part 2
-        $endtime = microtime(true);
-        $timediff = $endtime - $starttime;
-        $this->emDebug("displayContent query returned in " . $this->secondsToTime($timediff));
-        // end debug setup part 2
+            // start debug setup part 2
+            $endtime = microtime(true);
+            $timediff = $endtime - $starttime;
+            $this->emDebug("displayContent query returned in " . $this->secondsToTime($timediff));
+            // end debug setup part 2
 
-        // TODO consider trying to compress prior to sending, as this takes a while
-        $output = json_encode($result);
+            // TODO consider trying to compress prior to sending, as this takes a while
+            $output = json_encode($result);
+
+            // save the output to the temp file initiated in the export object.
+            if ($this->export->getTempFilePath()) {
+                $this->export->saveTempFile($output);
+            }
+        }
+
+
         header("content-type: application/json");
 
         echo $output;
@@ -314,7 +336,65 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         $s -= $h * 3600;
         $m = floor($s / 60);
         $s -= $m * 60;
-        return $h.':'.sprintf('%02d', $m).':'.sprintf('%02d', $s);
+        return $h . ':' . sprintf('%02d', $m) . ':' . sprintf('%02d', $s);
     }
 
+    /**
+     * @return Export
+     */
+    public function getExport()
+    {
+        return $this->export;
+    }
+
+    /**
+     * @param Export $export
+     */
+    public function setExport(Export $export)
+    {
+        $this->export = $export;
+    }
+
+    public function processFiles()
+    {
+        $config = $this->getExport()->getTempFileConfig();
+        $result = array();
+        if ($config) {
+            foreach ($config as $item) {
+                if ($item['date'] && time() < strtotime($item['date'])) {
+                    if (file_exists($item['path'])) {
+                        $result[] = array('status' => 'available', 'path' => $item['path']);
+                    } else {
+                        $result[] = array('status' => 'processing', 'path' => $item['path']);
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+    public function prepareDataForDownload($data)
+    {
+        $result = array();
+        foreach ($data as $item) {
+            if (is_array($item[0])) {
+                return $this->prepareDataForDownload($item);
+            } else {
+                $result[] = implode(",", $item);
+            }
+
+        }
+        return implode("\n", $result);
+    }
+
+    public function downloadCSVFile($filename, $data)
+    {
+        $data = $this->prepareDataForDownload($data['data']);
+        // Download file and then delete it from the server
+        header('Pragma: anytextexeptno-cache', true);
+        header('Content-Type: application/octet-stream"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo $data;
+        exit();
+    }
 }

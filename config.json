@@ -40,6 +40,12 @@
         "name": "Review / Export Data",
         "icon": "report",
         "url": "index.php"
+      },
+      {
+        "name": "Download Processed Reports",
+        "icon": "report",
+        "url": "display.php",
+        "show-header-and-footer": true
       }
     ]
   },
@@ -56,21 +62,30 @@
   ],
 
   "project-settings": [
-
     {
       "key": "enable-project-debug-logging",
       "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
       "required": false,
       "type": "checkbox"
     },
-
+    {
+      "key": "temp-file-days-to-expire",
+      "name": "<b>Specify the number of days which the exported file will be valid for.</b><br><i>(5 days if left empty)</i>",
+      "required": false,
+      "type": "text"
+    },
+    {
+      "key": "temp-file-config",
+      "name": "<b>Json Objects of Cached files</b><br><i></i>",
+      "required": false,
+      "type": "textarea"
+    },
     {
       "key": "preview-record-limit",
       "name": "<b>Preview Record Limit</b><br><i>(optional)</i> Set the record limit for preview queries. Default is 200 rows",
       "required": false,
       "type": "text"
     }
-
   ],
 
   "compatibility": {
