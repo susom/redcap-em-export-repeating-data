@@ -32,8 +32,8 @@ class ClientMetadata
 
             var instrumentLookup;
             function getInstrumentForField(fieldOrInstrumentName) {
-                // console.log('fieldOrInstrumentName');
-                // console.log(fieldOrInstrumentName);
+                 // console.log('fieldOrInstrumentName');
+                 // console.log(fieldOrInstrumentName);
                 if (! instrumentLookup) {
                     instrumentLookup = [];
                     instrumentLookup['url'] = "<?php echo $module->getPrefix()?>" + '/DataEntry/record_home.php?pid=' +
@@ -60,9 +60,9 @@ class ClientMetadata
                     }
                     ?>
                     // console.log(instrumentLookup);
-                }
+                 }
 
-                return instrumentLookup[fieldOrInstrumentName];
+               return instrumentLookup[fieldOrInstrumentName];
             }
 
             function  appendInputs(element, parent, restore, settings) {
@@ -73,7 +73,7 @@ class ClientMetadata
                     type: 'POST',
                     success: function (data) {
                         data = '<input type="hidden" name="field_name" value="'+fieldname+'"/>'
-                            + data + appendFieldFilterControls();
+                            + addAutoCompleteIfTextInput(data, fieldname) + appendFieldFilterControls();
                         element.append(data);
                         element.appendTo(parent);
                         if (restore) {
@@ -87,6 +87,21 @@ class ClientMetadata
                         alert("Request: " + JSON.stringify(request));
                     }
                 });
+            }
+
+            function addAutoCompleteIfTextInput(data, fieldname1) {
+                var ind = data.indexOf('type="text"');
+
+                var newdata;
+                if (ind > 0) {
+                    var js = '\<script\>\$( function() {$( \"#'+fieldname1+'_ac\" ).autocomplete({source: '+fieldname1+'_aclov }); } );</script\>';
+
+                    newdata = data.substr(0,ind) + ' id=\"' + fieldname1 + '_ac\" ' + data.substr(ind) +js  ;
+                } else {
+                    newdata = data;
+                }
+
+                return newdata;
             }
 
             function tagRepeatables() {
@@ -133,7 +148,7 @@ class ClientMetadata
                                 // perhaps due to trailing blanks? so do it the hard way
                                 linkedInstrumentFound  = false;
                                 for (let i = 0; i < repeatingForms.length; i++) {
-                                    linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i].trim() === linkedToInstrument
+                                    linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i].trim() === linkedToInstrument;
                                 }
 
                                 if (linkedInstrumentFound) {
@@ -159,7 +174,7 @@ class ClientMetadata
             function appendFieldFilterControls  () {
                 return '<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">\n' +
                     '  <span aria-hidden="true">&times;</span>\n' +
-                    '</button>'
+                    '</button>';
             }
 
             function tickAllPanelCheckboxes (label, value) {
@@ -174,19 +189,19 @@ class ClientMetadata
 
             $(function () {
 
-                <!-- this next block of functions are the select-all / clear-all behavior of the panel header checkbox -->
+                // this next block of functions are the select-all / clear-all behavior of the panel header checkbox
                 <?php
                 foreach ($this->instruments as $key => $instrument) {
                 ?>
                 $("#<?php echo $key ?>_cb").click( function () {
-                    var checked = $("#<?php echo $key ?>_cb"); <!-- the header checkbox has the instrument name as its id -->
-                    var checkBoxes = $(".<?php echo $key ?>"); <!-- the associated fields all have the instrument name as their class -->
+                    var checked = $("#<?php echo $key ?>_cb"); // the header checkbox has the instrument name as its id
+                    var checkBoxes = $(".<?php echo $key ?>"); // the associated fields all have the instrument name as their class
                     checkBoxes.prop("checked", checked.prop("checked"));
                 });
                 <?php
                 }
                 ?>
-                <!-- this data structure is passed in to bstreeview for rendering as the left side hierarchical list control -->
+                // this data structure is passed in to bstreeview for rendering as the left side hierarchical list control
                 var json = [
                     <?php
                     $first_time_through_inst = true;
@@ -283,7 +298,7 @@ class ClientMetadata
                                 var selector= "#" + copy.text();
 
                                 var checkBoxes = $( selector );
-                                checkBoxes.prop("checked", true)
+                                checkBoxes.prop("checked", true);
                             }
 
                             panelName = getInstrumentForField(copy.text());
@@ -325,4 +340,65 @@ class ClientMetadata
         $module->emDebug("getClientMetadata completed in " . $module->secondsToTime($timediff));
 // end debug setup part 2
     }
+
+    function getFilterDefns() {
+        global $module;
+        $sql = "select rd.field_name,value
+                        from redcap_data rd
+                        join redcap_metadata rm on rd.project_id = rm.project_id
+                         and rm.field_name = rd.field_name
+                        where rd.project_id = ".$module->getProjectId()."
+                        and element_type = 'text'
+                        group by rd.field_name, value
+                        order by rd.field_name, upper(value)";
+        $autodata = db_query($sql);
+        $textFieldNames = [];
+
+        $currentFieldName = "";
+        if (strlen(db_error()) > 0) {
+            $dberr = db_error();
+            $module->emError('Query error in autocomplete generation: ' . print_r($dberr, TRUE));
+         } else {
+            echo "<script>";
+            while ($row = db_fetch_assoc($autodata)) {
+                $fieldName = $row['field_name'];
+                $value= str_replace("\n","", $row['value']);
+                if ($currentFieldName != $fieldName) {
+                    if (strlen($currentFieldName) > 0) { // close off the end of the earlier variable definition
+                        echo "\n];\n$( \"#$currentFieldName"."_ac\" ).autocomplete({\n  source: $currentFieldName"."_aclov\n});";
+                    }
+                    echo "\nvar $fieldName" . "_aclov = [";
+                    $currentFieldName = $fieldName;
+                    $textFieldNames[] = $currentFieldName;
+                }
+                echo "  '$value',";
+                //$module->emDebug('merged: ' . print_r($data, TRUE));
+            }
+        }
+         $module->emLog('YO: ' . print_r($textFieldNames, TRUE));
+        echo "\n];\n$( '#$currentFieldName"."_ac' ).autocomplete({\n  source: $currentFieldName"."_aclov\n});</script>";
+
+        // ok, now the script has been written, add the field definitions
+        foreach ($textFieldNames as $textFieldName) {
+            $module->emLog('YO: ' . print_r($textFieldName, TRUE));
+            ?>
+    <div id="row_filter" class="list-group filters-fields ui-droppable" style="min-height: 50px; width: 100%; display: none;">
+    <div href="#tree-item-2" class="list-group-item draggable1 ui-draggable ui-draggable-handle" data-toggle="collapse" style="padding-left:2.5rem;"><?php echo $textFieldName?><input type="hidden" name="field_name" value="<?php echo $textFieldName?>"><select class="x-form-text x-form-field limiter-operator" name="limiter_operator[]">
+	<option value="E">=</option>
+	<option value="NE">not =</option>
+	<option value="CONTAINS">contains</option>
+	<option value="NOT_CONTAIN">does not contain</option>
+	<option value="STARTS_WITH">starts with</option>
+	<option value="ENDS_WITH">ends with</option>
+</select>
+<input name="limiter_value[]" onblur="" class=" x-form-text x-form-field limiter-value" maxlength="255" style="max-width:150px;" value="" id="<?php echo $textFieldName?>_ac" type="text">
+<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">
+  <span aria-hidden="true">×</span>
+</button></div></div>
+<?php
+        }
+
+    }
+
+
 }

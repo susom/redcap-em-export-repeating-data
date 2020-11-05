@@ -289,7 +289,15 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         }
 
     }
-
+    public function getFilterDefns() {
+        try {
+            $this->clientMetadata->getFilterDefns();
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+            $this->emError($e->getMessage());
+            return "";
+        }
+    }
 
     /**
      * convert json to SQL, then send the data back to the client

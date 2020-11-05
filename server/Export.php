@@ -42,7 +42,7 @@ class Export
                     $this->setTempFilePath($item['path']);
                     $this->setTempFileDate($item['date']);
                 } else {
-                    // just update existing date and path with new informaiton.
+                    // just update existing date and path with new information.
                     $this->setTempFilePath(APP_PATH_TEMP . date("YmdHis", strtotime("+$days days")) . '_' . strtolower($this->generateRandomString()) . '_report' . '.csv');
                     $this->setTempFileDate($this->formatTempDate($days));
                     $config[$index]['path'] = $this->getTempFilePath();
@@ -74,7 +74,7 @@ class Export
 
     public function saveTempFile($content)
     {
-        return file_put_contents($this->getTempFilePath(), $content);;
+        return file_put_contents($this->getTempFilePath(), $content);
     }
 
     function assembleSpecification($config)

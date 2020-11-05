@@ -44,6 +44,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                    value="<?php echo $module->getUrl("server/getDataFromServer.php") ?>">
             <input type="hidden" name="clientmeta-submit" id="clientmeta-submit"
                    value="<?php echo $module->getUrl("server/getClientMetadata.php") ?>">
+            <input type="hidden" name="filter-submit" id="filter-submit"
+                   value="<?php echo $module->getUrl("server/getFilterDefns.php") ?>">
 
             <!-- imitate other REDCap page headers -->
             <div class="row" >
@@ -111,6 +113,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         <div class="grey cbox-panel" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>
 
                         </div>
+                        <div id="insert-row-filters-here"></div>
                     </div>
 
                     <p></p>

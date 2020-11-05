@@ -1,6 +1,7 @@
 $(function () {
 
     var struct = {};
+    var nAjaxSuccesses = 0;
     // launch a callback to the server to render the javascript used
     // to display the left hand navigation, since this seems to take a long time
     $.ajax({
@@ -10,11 +11,43 @@ $(function () {
         data: struct,
         dataType: 'html',
         success: function (response) {
-            $("#ui-loading").hide();
+            nAjaxSuccesses++;
+            if (nAjaxSuccesses === 2) {
+                $("#ui-loading").hide();
+            }
             if (response.status === 0) {
                 showError("Error: " + response.message);
             } else {
+                // console.log(response);
                 $("#insert-js-here").replaceWith(response);
+            }
+
+        },
+        error: function (request, error) {
+            $("#ui-loading").hide();
+            showError("STARTUP Server Error: " + JSON.stringify(error));
+            // console.log(request);
+            console.log(error);
+        }
+    });
+    // simultaneously launch a background task to generate a set of filters for text fields
+    // with associated search-as-you-type autocompletion lists.
+    $.ajax({
+        url: $("#filter-submit").val(),
+        timeout: 60000000,
+        type: 'GET',
+        data: struct,
+        dataType: 'html',
+        success: function (response) {
+            nAjaxSuccesses++;
+            if (nAjaxSuccesses === 2) {
+                $("#ui-loading").hide();
+            }
+            if (response.status === 0) {
+                showError("Error: " + response.message);
+            } else {
+                //console.log(response);
+                $("#insert-row-filters-here").replaceWith(response);
             }
 
         },
@@ -61,8 +94,9 @@ $(function () {
 });
 
 function applyModel(model) {
-    $("#row_filter").find(".list-group-item").remove();
+    $("#row_filter").find(".list-group-item").hide(); // formerly remove
     $(".panel").hide();
+    $('.column-selector').prop("checked", false);
     if( !model.hasOwnProperty('reportname')) {
         showError("Unrecognized file type. To restore settings, please select a file previously saved by clicking 'Save Settings'");
         return;
@@ -72,7 +106,6 @@ function applyModel(model) {
     if (values.length > 0) {
         $( "#tip_missing_col_1" ).remove();
         $( "#tip_missing_col_2" ).remove();
-
     }
     for (var i = 0; i < values.length; i++) {
         $("#panel-" + values[i].instrument).show();
@@ -291,7 +324,7 @@ function getExportJson(is_preview, formdata, record_count) {
     var joins = [];
     var join;
     var cardinality = [];
-
+    addFilter = false;
     formdata.forEach(function (item, index) {
 
         if (item.name === 'field_name') {
@@ -299,13 +332,16 @@ function getExportJson(is_preview, formdata, record_count) {
             filter.field = item.value;
         } else if (item.name === 'limiter_operator[]') {
             filter.operator = item.value;
-        } else if (item.name === 'limiter_value[]') {
+        } else if (item.name === 'limiter_value[]' && item.value) {
+            // console.log('adding '+item.name);
             filter.validation = getInstrumentForField(filter.field + '@validation');
+            addFilter = true;
             filter.param = getLabelOrCode(filter.field, item.value, struct.raw_or_label);
-        } else if (item.name === 'limiter_connector[]') {
+        } else if (item.name === 'limiter_connector[]' && addFilter) {
             filter.boolean = item.value;
             filter.instrument = getInstrumentForField(filter.field);
             filters.push(Object.assign({}, filter));
+            addFilter = false;
         } else if (item.name === 'report_name') {
             if (item.value.length > 0) {
                 struct.reportname = item.value;
@@ -356,7 +392,7 @@ function getExportJson(is_preview, formdata, record_count) {
     struct.columns = columns;
     struct.filters = filters;
     struct.cardinality = Object.assign({}, cardinality);
-    // console.log(struct);
+     // console.log(struct);
     return struct;
 
 }
