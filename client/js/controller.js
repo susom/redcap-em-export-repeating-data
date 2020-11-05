@@ -369,11 +369,11 @@ function convertToCSV(objArray) {
         var line = '';
         for (var index in array[i]) {
             if (line !== '') line += ','
-            if (array[i][index] && array[i][index].includes(",")) {
+            if (array[i][index] && (array[i][index].includes(",") || array[i][index].includes("\n"))) {
                 line += '"';
             }
             line += escape_doublequotes(array[i][index]);
-            if (array[i][index] && array[i][index].includes(",")) {
+            if (array[i][index] && (array[i][index].includes(",") || array[i][index].includes("\n"))) {
                 line += '"';
             }
         }
