@@ -25,7 +25,7 @@ $primaryTag = "<span class='badge badge-info ml-5 repeating-primary'>Repeating: 
 foreach ($instruments as $key => $instrument) {
     if ($module->isRepeatingForm($key) == 1 ) {
         $mydate = $module->getDateField($key);
-        if ( $module->instanceSelectLink($key)   || $module->hasChild($key)) {
+        if ( $module->instanceSelectLink($key) || $module->hasChild($key)) {
             $secondaryTag = "<span class='badge badge-primary ml-5 repeating-secondary'>Repeating; related to "
                 . ($module->instanceSelectLink($key) ? $module->instanceSelectLink($key) : $module->hasChild($key)) . "</span>";
         } else {

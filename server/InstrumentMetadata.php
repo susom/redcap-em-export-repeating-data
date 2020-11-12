@@ -155,7 +155,8 @@ class InstrumentMetadata
         }
 
         foreach ($this->resultArray as $visiblekey => $visibleval) {
-                if ($this->resultArray[$visiblekey]['foreign_key_ref'] === $instrument) {
+                if (isset($this->resultArray[$visiblekey]['foreign_key_ref'])
+                  && $this->resultArray[$visiblekey]['foreign_key_ref'] === $instrument) {
                     $foundParent = $visiblekey;
                     break;
             }

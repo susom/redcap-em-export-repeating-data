@@ -76,11 +76,28 @@ class ClientMetadata
                             + addAutoCompleteIfTextInput(data, fieldname) + appendFieldFilterControls();
                         element.append(data);
                         element.appendTo(parent);
-                        if (restore) {
+                      // add last or earliest filter for date fields
+                      if (data.indexOf('class="date_') > -1) {
+                        let limiterOperator = element.find('.limiter-operator');
+                        limiterOperator.append('<option class="minmax" value="MAX">latest</option>');
+                        limiterOperator.append('<option class="minmax" value="MIN">earliest</option>');
+                        // hide the text box if date filter is max or min
+                        limiterOperator.attr('id', fieldname + '_op');
+                        $('#' + fieldname +'_op').change(function() {
+                          if ($( '#' + fieldname +'_op' + " option:selected").val() =='MAX' ||
+                            $( '#' + fieldname +'_op' + " option:selected").val() =='MIN') {
+                              $('#' + fieldname +'_ac').val('');
+                              $('#' + fieldname +'_ac').hide();
+                          } else {
+                              $('#' + fieldname +'_ac').show();
+                          }
+                        });
+                      }
+                      if (restore) {
                             element.find('.limiter-operator').val(settings.operator);
                             element.find('.limiter-value').val(settings.param);
                             element.find('select[name^="limiter_connector"]').val(settings.boolean);
-                        }
+                      }
 
                     },
                     error: function (request, error) {

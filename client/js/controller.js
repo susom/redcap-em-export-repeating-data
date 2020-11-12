@@ -140,6 +140,7 @@ function runQuery(preview, record_count) {
     }
 
     var json = getExportJson(preview, formdata, record_count);
+    //console.log("Submit: "  + JSON.stringify(json));
     clearError();
     if (json.columns.length === 0 && record_count === false) {
         showError("You must drag at least one field from the list on the left and drop it into the 'Specify Report Columns' box above. ");
@@ -184,7 +185,7 @@ function runQuery(preview, record_count) {
         },
         error: function (request, error) {
             $("#longop-running").hide();
-            showError("Server Error: " + JSON.stringify(error));
+            showError("Server Error: " + JSON.stringify(error) + ' Request: ' + JSON.stringify(request));
         }
     });
 }
@@ -332,6 +333,9 @@ function getExportJson(is_preview, formdata, record_count) {
             filter.field = item.value;
         } else if (item.name === 'limiter_operator[]') {
             filter.operator = item.value;
+            if (item.value === 'MAX' || item.value === 'MIN') {
+                addFilter = true;
+            }
         } else if (item.name === 'limiter_value[]' && item.value) {
             // console.log('adding '+item.name);
             filter.validation = getInstrumentForField(filter.field + '@validation');

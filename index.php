@@ -3,7 +3,7 @@
 /** @var \Stanford\ExportRepeatingData\ExportRepeatingData $module */
 # Render left hand side navigation and PID / project name banner
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
-
+$port = (PORT === '') ? '' : ':'.PORT;
 ?>
 <!doctype html>
 <html lang="en">
@@ -38,7 +38,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         <form name="export-repeating" id="export-repeating">
             <!-- set up for calling REDcap API via Ajax to display controls for user-specified field filters (upper right) -->
             <input type="hidden" name="base-url" id="base-url"
-                   value="<?php echo $_SERVER['REQUEST_SCHEME'] . '://' . SERVER_NAME . APP_PATH_WEBROOT . 'DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
+                   value="<?php echo $_SERVER['REQUEST_SCHEME'] . '://' . SERVER_NAME . $port . APP_PATH_WEBROOT . 'DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
             <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token" value="<?php echo System::getCsrfToken() ?>">
             <input type="hidden" name="report-submit" id="report-submit"
                    value="<?php echo $module->getUrl("server/getDataFromServer.php") ?>">
