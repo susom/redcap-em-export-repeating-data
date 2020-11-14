@@ -16,7 +16,7 @@ and click on the ‘Review / Export Data’ hyperlink in that section.
 
 Once launched, you will see a screen similar to this:
 
-<img src="./assets/redug_2.png" width="800"/>
+<img src="./assets/redug_2.png" width="1000"/>
 
 ### Report Name. 
 Specify the name of the file for your exported data or settings. Not required for preview.
@@ -29,7 +29,7 @@ Here you should see a familiar looking list of all instruments and fields in you
 ### Filter Rows. 
 Optionally drag a field from the left hand side and drop it into this box to start the process of specifying a row filter. To complete a filter, select the operation from the dropdown and specify the parameter in the text/dropdown field. If multiple filters are used, select the appropriate boolean logic operand used to join the filters. The final boolean operator is ignored. To discard a filter, click the  x  on the far right. Note that filters cannot be re-ordered, so if ordering is important, you should drop the filters into this control in the order you wish them to be evaluated.
 
-<img src="./assets/redug_3.png" width="600"/>
+<img src="./assets/redug_3.png" width="800"/>
 
 ### Record count. 
 This feature allows you to count the distinct records in your REDCap rather than patients in the clinical dataset. When you are satisfied with your filter settings, click the “count” button in the upper right corner to trigger a database query that will return the number of matching records.  Note that this is very likely a different number than the final number of rows returned in your data report; this count is of the distinct number of matching records. If you have repeating data associated with these records, the number of rows in the data report is likely to be much larger.
@@ -38,7 +38,7 @@ This feature allows you to count the distinct records in your REDCap rather than
 ### Report columns. 
 Drag an instrument or field from the left hand side and drop it into this area to create a new control consisting of checkboxes for all the fields in the given instrument. If you drop an instrument, all fields will be selected. If you drop a field, only that field will be selected. You can then turn other fields on and off using the checkboxes. You can also show/hide the checkbox panel using the small control to the left of the panel name in the colorful panel header. This can come in handy when working with instruments having many fields.
 
-<img src="./assets/redug_4.png" width="600"/>
+<img src="./assets/redug_4.png" width="800"/>
 
 Configuring a report with multiple instruments is covered in the “Reporting on Multiple Forms” section below.
 
@@ -72,7 +72,7 @@ When this EM is enabled on your project, a project administrator has to make som
 1. A repeating form is the child of another repeating form, and
 1. A repeating form is the peer of another repeating form
 
-<img src="./assets/redug_5.png" width="600"/>
+<img src="./assets/redug_5.png" width="800"/>
 
 For example, suppose your project tracks all clinic visits for a patient along with all labs for a patient; the visit and lab instruments each have their own separate date fields. A report joining patient information with visit information would be scenario 1.  And a report joining patient data to lab data would also be scenario 1. 
 
@@ -83,23 +83,23 @@ But more typically you will have multiple sets of repeating data all related to 
 In Scenario 1, you join non-repeating (Singleton) data with data from one repeating form.
 The first repeating form in the list is considered the primary, or anchor, instrument for the report. This means that every instance of data in this instrument that matches the supplied report filters will be included in the final report. So when you join one repeating form with a non-repeating form, you will see the non-repeating form data replicated for each matching row of the primary repeating form. For example, patient 1, who lives in California, has had two visits, one in July, the other in August. The report has one row for every visit instance in the REDCap project, with associated patient information replicated on each corresponding row.
 
-<img src="./assets/redug_6.png" width="600"/>
+<img src="./assets/redug_6.png" width="800"/>
 
 #### Scenario 2
 In Scenario 2, you join data on instruments linked in a parent-child relationship. This report behaves in much the same way as a Scenario 1 report in that the parent data is replicated on each corresponding row of the child data. 
 
 For example, record 1 had 2 visits, each of which had two different associated medications, medications A and B on the July “Clinic” visit and medications C and D on the August “Well Baby” visit.
 
-<img src="./assets/redug_7.png" width="600"/>
+<img src="./assets/redug_7.png" width="800"/>
 
 #### Scenario 3
 Scenario 3 is the interesting one. Bear in mind that the order in which you sort the repeating form panels determines how your data will be reported out.   The first repeating form in the list is treated as the anchor for the report. All other peer repeating forms added to the report specification will be labeled as “Repeating: Pivot & Filter”. So when crafting a report involving multiple peer instruments you first need to decide which of them will be the driver for the report. For example, if you have three peer repeating forms Visit, PFT and Walk, this is what the interface will look like when Visit is selected as the anchor,
 
-<img src="./assets/redug_8.png" width="600"/>
+<img src="./assets/redug_8.png" width="800"/>
 
 And this is what it will look like when PFT is selected:
 
-<img src="./assets/redug_9.png" width="600"/>
+<img src="./assets/redug_9.png" width="800"/>
 
 There are two different behaviors supported for the secondary (Repeating: Pivot & Filter) repeating forms.
 If you supply at least one value in the blanks prompting for the minimum and maximum number of days between the two records, either one or zero rows of the secondary form will be added to the final report. The number of rows in the final report will correspond to the number of matching rows in the primary/anchor report. Only the values in the secondary instrument closest in time to the primary and within the specified date proximity limits will be included.
@@ -108,15 +108,15 @@ If you do not supply any values in the blanks, you will get back rows for all ma
 For example, assume patient 1 has two visits, one in July, the other in August, and three PFT test results in January, June and September. 
 If you write a report with Visit as the Primary and PFT as the secondary, specifying a 2 day before and after limit, you will get back two rows for the two visits, with blanks for the PFT test results, as none of the PFT tests occurred within 2 days of a visit.
 
-<img src="./assets/redug_10.png" width="600"/>
+<img src="./assets/redug_10.png" width="800"/>
 
 If you write a report with Visit as the Primary and PFT as the secondary, specifying a 45 day before and after limit, you will get back two rows for the two visits, with data for the nearest PFT test results, one of which happened prior to the visit (June prior to July), the other after (Sept after August). The PFT test results from January will be filtered out as the June result was the closer match to the first visit.
 
-<img src="./assets/redug_11.png" width="600"/>
+<img src="./assets/redug_11.png" width="800"/>
 
 And if you write a report with Visit as the Primary and PFT as the secondary with no limits, you will get back three rows, including two rows for the July visit, one with the matching PFT form January, the other with the match from June.
 
-<img src="./assets/redug_12.png" width="600"/>
+<img src="./assets/redug_12.png" width="800"/>
 
 _Handy tip:_ when reordering column panels you can hide the associated checkboxes by clicking on the control button next to the instrument name in the column panel header.
 
