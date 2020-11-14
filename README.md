@@ -1,6 +1,6 @@
 # Export Repeating Data External Module
 ### Users' Guide
-The end-user documentation for this EM is https://docs.google.com/document/d/13qn4vGgZ6FmWJA96Q0aCPPcznCEKsX4LM61KEXxPKUk/
+The end-user documentation for this EM is [users_guide.md](./documentation/users_guide.md)
 ### What does it do?
 Native support for data reporting and export in REDCap does not work
 particularly well with repeating forms data. 
