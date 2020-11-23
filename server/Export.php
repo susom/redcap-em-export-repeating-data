@@ -3,6 +3,7 @@
 namespace Stanford\ExportRepeatingData;
 /** @var ExportRepeatingData $module */
 use REDCap;
+use Exception;
 
 /**
  * Class Export
@@ -68,9 +69,15 @@ class Export
 
     function buildAndRunQuery($config)
     {
-        $newConfig = $this->assembleSpecification($config);
-        $result = $this->runQuery($newConfig);
-        return $result;
+        try {
+            $newConfig = $this->assembleSpecification($config);
+            $result = $this->runQuery($newConfig);
+            return $result;
+        } catch (Exception $e) {
+            $result["status"] = 0 ;
+            $result["message"] = $e->getMessage() ;
+            return $result ;
+        }
     }
 
     public function saveTempFile($content)
@@ -129,12 +136,30 @@ class Export
                     $json->forms[$instrument]->form_name = $column->instrument;
 
                     $meta = $this->instrumentMetadata->isRepeating($column->instrument);
+                    $module->emDebug("Meta for instrument :" . $column->instrument . " is : " . print_r($meta, TRUE));
                     $json->forms[$instrument]->cardinality = $meta['cardinality'];
                     $joinType = $json_inp->cardinality->$instrument->join;
                     if ($joinType == 'repeating-instance-select') {
                         $json->forms[$instrument]->join_type = 'instance';
+                        $json->forms[$instrument]->join_key_field = $meta['foreign_key_field'];
+                        $json->forms[$instrument]->foreign_key_field = 'instance';
+                        $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'];
+                        // Following is the case where the parent form comes later than the children form
+                        if (empty($meta['foreign_key_ref'])) {
+                            $module->emDebug("Inside code for choosing child of " . $instrument) ;
+                            $childform = $module->hasChild($column->instrument) ;
+                            if (empty($childform)) {
+                                throw new Exception("No parent/child link defined for " . $column->instrument) ;
+                            }
+                            $meta = $this->instrumentMetadata->isRepeating($childform);
+                            $json->forms[$instrument]->join_key_field = 'instance' ;
+                            $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'] ;
+                            $json->forms[$instrument]->foreign_key_ref = $childform ;
+                        }
+                        /*                        
                         $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'];
                         $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'];
+                        */
                     } else if ($joinType == 'repeating-date-pivot') {
                         $json->forms[$instrument]->join_type = 'date_proximity';
                         $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
@@ -145,6 +170,10 @@ class Export
                             $json->forms[$instrument]->foreign_key_ref = $primaryJoinInstrument;
                             $json->forms[$instrument]->foreign_key_field = $primaryJoinField;
                         } else {
+                            // SRINI: This should be an error condition. According to the user guide, first repeating form
+                            // should act as the join instrument and it should have the primary date field set.
+                            throw new Exception("Missing @PRINCIPAL_DATE field on the primary repeating instrument  " . $primaryJoinInstrument . ".") ;
+                            /*
                             // if there's no join field then need to join with this form's parent
                             $meta = $this->instrumentMetadata->isRepeating($primaryJoinInstrument);
                             $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'];
@@ -153,6 +182,7 @@ class Export
                             // the parent's principal date is the foreign key field for date proximity join
                             $parentMeta = $this->instrumentMetadata->isRepeating($meta['foreign_key_ref']);
                             $json->forms[$instrument]->foreign_key_field = $parentMeta['principal_date'];
+                            */
                         }
                     }
                 }
@@ -183,12 +213,14 @@ class Export
     // also if there is a filter from a table that is not in columns,
     // then the table for the filter needs to be included as well as it's parent
     function add_forms_from_filters($json_inp, $json) {
+        global $module;
+
         $identifier_field = REDCap::getRecordIdField();
         foreach ($json_inp->filters as $filter) {
             $meta = $this->instrumentMetadata->isRepeating($filter->instrument);
             $is_child = !empty($meta['foreign_key_ref']);
-            $has_children = !empty($meta['children']);
-
+            $has_children = !empty($meta['children']);            
+            
             // min and max date filters require a parent form
             // if the parent form is missing, it will be added at end of this function
             if ($filter->operator == 'MAX' || $filter->operator == 'MIN') {
@@ -200,15 +232,16 @@ class Export
             }
             if (!array_key_exists($filter->instrument, $json->forms)) {
                 $this->add_form_to_spec($filter->instrument, $json);
+                $json->forms[$filter->instrument]->added_by_filter = true ;
 
-                if ($is_child) {
+                if ($is_child) {                    
                     $json->forms[$filter->instrument]->join_type = 'instance';
+                    $json->forms[$filter->instrument]->join_key_field = $meta['foreign_key_field'];
                     $json->forms[$filter->instrument]->foreign_key_ref = $meta['foreign_key_ref'];
-                    $json->forms[$filter->instrument]->foreign_key_field = $meta['foreign_key_field'];
+                    $json->forms[$filter->instrument]->foreign_key_field = 'instance';
                     $filter->parent_form = $meta['foreign_key_ref'];
                     // check if the foreign_key_ref is one of the forms
-                    if (isset($json->forms[$filter->parent_form]) &&
-                        !in_array($meta['foreign_key_field'], $json->forms[$filter->instrument]->fields)) {
+                    if (!in_array($meta['foreign_key_field'], $json->forms[$filter->instrument]->fields)) {
                         $json->forms[$filter->instrument]->fields[]=$meta['foreign_key_field'];
                     }
                 } else {
@@ -218,25 +251,29 @@ class Export
                     if ($has_children) {
                         // if any of the children are in the forms, then set them to join_type instance
                         foreach ($meta['children'] as $child) {
+                            $module->emDebug("Processing children :" . $child . " isset " . isset($json->forms[$child])) ;
                             if (isset($json->forms[$child])) {
                                 $childMeta = $this->instrumentMetadata->isRepeating($child);
-                                $json->forms[$child]->join_type='instance';
-                                $json->forms[$child]->foreign_key_ref = $filter->instrument;
-                                $json->forms[$child]->foreign_key_field = $childMeta['foreign_key_field'];
+                                $json->forms[$filter->instrument]->join_type='instance';
+                                $json->forms[$filter->instrument]->join_key_field = 'instance';
+                                $json->forms[$filter->instrument]->foreign_key_ref = $child;
+                                $json->forms[$filter->instrument]->foreign_key_field = $childMeta['foreign_key_field'];
                                 //add the foreign key field if it's not already there
-                                if (!in_array($childMeta['foreign_key_field'], $json->forms[$child]->fields)) {
-                                    $json->forms[$child]->fields[] = $childMeta['foreign_key_field'];
+                                if (!in_array($childMeta['foreign_key_field'], $json->forms[$filter->instrument]->fields)) {
+                                    $json->forms[$filter->instrument]->fields[] = $childMeta['foreign_key_field'];
                                 }
                             }
                         }
                     }
                 }
             }
+            /* SRINI - Not sure we need it yet - will add if needed
             // if we've just added a form with a parent form, then the parent form also needs to be joined
             if (isset($filter->parent_form)
                 && !array_key_exists($filter->parent_form, $json->forms)) {
                 $this->add_form_to_spec($filter->parent_form, $json);
             }
+            */
         }
     }
 
@@ -372,9 +409,12 @@ class Export
         foreach ($json->forms as $form) {
             // Doing coalesce so nulls will be displayed as '' in output reports
             foreach ($form->fields as $field) {
-                $select_fields[] = $field;
-                $all_fields[] = $field;
-                $select = $select . (($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field;
+                // if the form is added by filter, we shouldn't expose it to the user
+                if (!$form->added_by_filter) {
+                    $select_fields[] = $field;
+                    $select = $select . (($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field;
+                }
+                $all_fields[] = $field;                
             }
         }
 
@@ -390,6 +430,7 @@ class Export
         // forms need to be sorted so that parent repeating forms go before child repeating forms.
         // singletons go last?
         // TODO: ask Srini about user deciding on order of forms
+        /*
         uasort($json->forms, function ($a, $b) {
             if (strcmp($a->cardinality,$b->cardinality) === 0) {
                 if (!isset($a->join_type) && !isset($b->join_type)) {
@@ -405,8 +446,21 @@ class Export
             // repeating < singleton
             return strcmp($a->cardinality,$b->cardinality);
         });
+        */
 
-        $module->emDebug("form after rearranging :" . print_r($json->forms, TRUE)) ;
+        foreach ($json->forms as $formIdx => $form) {
+            $form->form_name = trim($form->form_name) ;
+            $form->form_name_alias = $form->form_name . "_a" ;
+            if (isset($form->foreign_key_ref)) {
+                $form->foreign_key_ref = trim($form->foreign_key_ref) . "_a" ;
+            }
+        }
+        if (isset($json->filters)) {
+            foreach ($json->filters as $filter) {
+                $filter->instrument = $filter->instrument . "_a" ;
+            }
+        }
+        $module->emDebug("final json after aliasing :" . print_r($json, TRUE)) ;
 
         foreach ($json->forms as $formIdx => $form) {
 
@@ -415,7 +469,7 @@ class Export
 
             $primaryForm = ($from == "");
             if ($primaryForm) {
-                $primaryFormName = $form->form_name;
+                $primaryFormName = $form->form_name_alias;
             }
 
             // mapping null instance to '1'
@@ -471,13 +525,13 @@ class Export
                     "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance and " .
                     $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record ";
 
-                $formSql = $formSql . ") " . $form->form_name;
+                $formSql = $formSql . ") " . $form->form_name_alias ;
 
                 if ($primaryForm) {
                     $from = "FROM " . $formSql;
                 } else {
-                    $from = $from . " left outer join ( " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  " .
-                        "and " . $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance )";
+                    $from = $from . " left outer join ( " . $formSql . " ON ( " . $form->form_name_alias . ".record = " . $primaryFormName . ".record  " .
+                        "and " . $form->form_name_alias . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance )";
                 }
 
                 //$module->emDebug("SQL inside the date_proximity : " . $from) ;
@@ -495,19 +549,20 @@ class Export
                         "GROUP BY rd.record, rd.instance";
                 }
 
-                $formSql = $formSql . ") " . $form->form_name;
+                $formSql = $formSql . ") " . $form->form_name_alias ;
 
                 if ($primaryForm) {
                     $from = "FROM " . $formSql;
                 } else {
-                    $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name . ".record = " . $primaryFormName . ".record  ";
+                    $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name_alias . ".record = " . $primaryFormName . ".record  ";
 
                     // If it is instance join type, join with "instance" column of the parent
                     if (isset($form->join_type)) {
                         if ($form->join_type == "instance") {
-                            $form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance";
+                            //$form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance";
+                            $form->join_condition = $form->form_name_alias . "." . $form->join_key_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field;
                         } elseif ($form->join_type == "lookup") {  // Not implemented yet. To support joining any columns
-                            $form->join_condition = $form->join_key_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field;
+                            $form->join_condition = $form->form_name_alias . "." . $form->join_key_field . " = " . $form->foreign_key_ref . "." . $form->foreign_key_field;
                         }
                     }
 
@@ -529,7 +584,7 @@ class Export
         }
 
         if (isset($json->filters)) {
-            $filtersql = $this->processFilters($json->filters, $all_fields, $valSel);
+            $filtersql = $this->processFilters($json->filters, $all_fields, $valSel, $primaryFormName);
             if (strlen($filtersql) > 0) {
                 $sql = $sql . " where " . $filtersql;
             }
@@ -660,7 +715,7 @@ class Export
     "time" (HH:MM)
     "zipcode" Zipcode (U.S.)
     */
-    function processFilters($filters, $all_fields, $valSel)
+    function processFilters($filters, $all_fields, $valSel, $primaryFormName)
     {
 
         global $module;
@@ -673,6 +728,8 @@ class Export
 
             $filterstr = $this->filter_string($filter);
 
+            // SRINI - 11/23/2020: Code shouldn't go into the following based on new approach of adding
+            // forms to the spec.  Keeping this code for reference. will remove once tested and confirmed.
             if (!in_array($filter->field, $all_fields)) {
 
                 $filterstr = str_replace($filter->instrument . "." . $filter->field, $valSel, $filterstr);
@@ -680,7 +737,7 @@ class Export
                 $filterstr = " exists (select 1 from redcap_data rd, redcap_metadata rm " .
                     "    where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $this->Proj->project_id . " and " .
                     "         rd.field_name = '" . $filter->field . "' and " . $filterstr .
-                    "   and rd.record  = person.record ) ";
+                    "   and rd.record  = " . $primaryFormname . ".record ) ";
 
                 $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
             } else {
@@ -753,6 +810,7 @@ class Export
      */
     public function isUseTempFile()
     {
+        //return false ;   // SRINI - We do not want cache in dev mode
         return $this->useTempFile;
     }
 
