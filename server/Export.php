@@ -412,7 +412,7 @@ class Export
                 // if the form is added by filter, we shouldn't expose it to the user
                 if (!$form->added_by_filter) {
                     $select_fields[] = $field;
-                    $select = $select . (($select == "") ? " " : ", ") . "COALESCE(" . $field . ", '') " . $field;
+                    $select = $select . (($select == "") ? " " : ", ") . "COALESCE(`" . $field . "`, '') " . "`" . $field . "`";
                 }
                 $all_fields[] = $field;                
             }
@@ -480,7 +480,7 @@ class Export
                 // changed from max to group_contact to handle checkbox values - SDM-109
                 // handling calc type - SDM-119
                 $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-                                                    " when rd.field_name = '" . $field . "' then $valSel end separator '\\n') " . $field . " ";                
+                                                    " when rd.field_name = '" . $field . "' then $valSel end separator '\\n') `" . $field . "` ";
             }
 
             // Add to the view, if it is included in the filters also
@@ -489,7 +489,7 @@ class Export
                     if ($filter->instrument == $form->form_name && !in_array($filter->field, $select_fields)) {
                         $all_fields[] = $filter->field;
                         $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-                                                                     "  when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') " . $filter->field . " ";
+                                                                     "  when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') `" . $filter->field . "` ";
                         
                     }
                 }
