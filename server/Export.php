@@ -478,7 +478,9 @@ class Export
             // Converting redcap_data into a view format for each selected fields
             foreach ($form->fields as $field) {
                 // changed from max to group_contact to handle checkbox values - SDM-109
-                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' then $valSel end separator '\\n') " . $field . " ";
+                // handling calc type - SDM-119
+                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
+                                                    " when rd.field_name = '" . $field . "' then $valSel end separator '\\n') " . $field . " ";                
             }
 
             // Add to the view, if it is included in the filters also
@@ -486,7 +488,9 @@ class Export
                 foreach ($json->filters as $filter) {
                     if ($filter->instrument == $form->form_name && !in_array($filter->field, $select_fields)) {
                         $all_fields[] = $filter->field;
-                        $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') " . $filter->field . " ";
+                        $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
+                                                                     "  when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') " . $filter->field . " ";
+                        
                     }
                 }
                 //$module->emDebug('$json->filters=' . print_r($json->filters, true));
