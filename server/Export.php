@@ -354,10 +354,7 @@ class Export
         }
         if ($json->raw_or_label == "label") {
             //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
-            // also keep rd.value first in the coalesce to correctly handle calculated fields.
-            // if the opposite ordering is required for some other scenario, then test for the calculated field
-            // scenario and have two different forms of the coalesce
-            $valSel = "coalesce(rd.value, SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1))";
+            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1), rd.value)";
         } else {
             $valSel = "rd.value";
         }
