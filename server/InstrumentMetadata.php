@@ -251,7 +251,7 @@ class InstrumentMetadata
         // pick out the value from this action tag
         $components = explode('=', $annotation );
         // $components[0] is the action tag, and $components[1] is the value we want
-        return $components[1];
+        return trim($components[1]);
     }
 
 } ?>

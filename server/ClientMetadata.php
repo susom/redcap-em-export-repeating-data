@@ -16,7 +16,21 @@ class ClientMetadata
     private $dataDict;
 
     private $instruments;
+    private function valueOfActionTag($actionTag, $allTags) {
+        $annotation = $allTags;
 
+        // there are multiple action tags associated with a given form field
+        $elements = explode('@', $allTags );
+        foreach ($elements as $element) {
+            if (contains($element,$actionTag)) {
+                $annotation = $element;
+            }
+        }
+        // pick out the value from this action tag
+        $components = explode('=', $annotation );
+        // $components[0] is the action tag, and $components[1] is the value we want
+        return trim($components[1]);
+    }
     function getClientMetadata() {
         global $module;
         // start debug setup part 1
@@ -24,16 +38,24 @@ class ClientMetadata
         $this->starttime = microtime(true);
         $module->emDebug("getClientMetadata launching");
 // end debug setup part 1
-
+        $lookupTable = array();
         $this->dataDict = $module->getDataDictionary();
+        foreach ($this->dataDict as $key => $ddEntry) {
+        if (contains($ddEntry['misc'], '@FORMINSTANCE')) {
+                $parent_instrument = $this->valueOfActionTag('FORMINSTANCE', $ddEntry['misc']);
+                $lookupTable[$ddEntry['form_name']] = $parent_instrument;
+            }
+        }
         $this->instruments = $module->getInstrumentNames();
         header("content-type: application/html");?>
         <script>
 
             var instrumentLookup;
             function getInstrumentForField(fieldOrInstrumentName) {
-                 // console.log('fieldOrInstrumentName');
-                 // console.log(fieldOrInstrumentName);
+                // need to support getInstrumentForField(firstRepeatingPanel + '_@date_field'); for child linked fields
+                // e.g. getInstrumentForField(meds_@date_field) should return visit_date
+                // console.log('fieldOrInstrumentName');
+                // console.log(fieldOrInstrumentName);
                 if (! instrumentLookup) {
                     instrumentLookup = [];
                     instrumentLookup['url'] = "<?php echo $module->getPrefix()?>" + '/DataEntry/record_home.php?pid=' +
@@ -57,12 +79,17 @@ class ClientMetadata
                             instrumentLookup["<?php echo $field ?>@lov"] = "<?php echo $module->getValue($field . '@lov') ?>";
                         <?php
                         }
+                        // last but not least, add lookups for parent instruments to handle the case where the relationships
+                        // are implied by filters
+                        ?>
+                        instrumentLookup["<?php echo $instrument ?>@parent"] = "<?php echo $lookupTable[$instrument]?>";
+                        <?php
                     }
                     ?>
-                    // console.log(instrumentLookup);
+
                  }
 
-               return instrumentLookup[fieldOrInstrumentName];
+                return instrumentLookup[fieldOrInstrumentName];
             }
 
             function  appendInputs(element, parent, restore, settings) {
@@ -76,28 +103,33 @@ class ClientMetadata
                             + addAutoCompleteIfTextInput(data, fieldname) + appendFieldFilterControls();
                         element.append(data);
                         element.appendTo(parent);
-                      // add last or earliest filter for date fields
-                      if (data.indexOf('class="date_') > -1) {
+                        // add exists or not-exists filters for all fields
                         let limiterOperator = element.find('.limiter-operator');
-                        limiterOperator.append('<option class="minmax" value="MAX">latest</option>');
-                        limiterOperator.append('<option class="minmax" value="MIN">earliest</option>');
-                        // hide the text box if date filter is max or min
+                        // limiterOperator.append('<option class="minmax" value="EXISTS">exists</option>');
+                        // limiterOperator.append('<option class="minmax" value="NOTEXIST">does not exist</option>');
+                        // add last or earliest filter for date fields
+                        if (data.indexOf('class="date_') > -1) {
+                            limiterOperator.append('<option class="minmax" value="MAX">latest</option>');
+                            limiterOperator.append('<option class="minmax" value="MIN">earliest</option>');;
+                        }
+                        // hide the text box if date filter is exists, not-exists, max or min
                         limiterOperator.attr('id', fieldname + '_op');
                         $('#' + fieldname +'_op').change(function() {
-                          if ($( '#' + fieldname +'_op' + " option:selected").val() =='MAX' ||
-                            $( '#' + fieldname +'_op' + " option:selected").val() =='MIN') {
-                              $('#' + fieldname +'_ac').val('');
-                              $('#' + fieldname +'_ac').hide();
-                          } else {
-                              $('#' + fieldname +'_ac').show();
-                          }
-                        });
-                      }
-                      if (restore) {
+                            if ($( '#' + fieldname +'_op' + " option:selected").val() =='MAX' ||
+                                $( '#' + fieldname +'_op' + " option:selected").val() =='MIN' ||
+                                $( '#' + fieldname +'_op' + " option:selected").val() =='EXISTS' ||
+                                $( '#' + fieldname +'_op' + " option:selected").val() =='NOTEXIST') {
+                                $('#' + fieldname +'_ac').val('');
+                                $('#' + fieldname +'_ac').hide();
+                            } else {
+                                $('#' + fieldname +'_ac').show();
+                            }
+                        })
+                        if (restore) {
                             element.find('.limiter-operator').val(settings.operator);
                             element.find('.limiter-value').val(settings.param);
                             element.find('select[name^="limiter_connector"]').val(settings.boolean);
-                      }
+                        }
 
                     },
                     error: function (request, error) {
@@ -160,6 +192,9 @@ class ClientMetadata
                                 var linkedToInstrument = badge.text().substr(22).trim();
                                 // console.log(instrumentName + ' linked to '+ linkedToInstrument);
                                 targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
+                                if (! targetDate) {
+                                    targetDate = getInstrumentForField(getInstrumentForField(firstRepeatingPanel + '@parent') + '_@date_field');
+                                }
                                 $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                                 // sigh. "linkedToInstrument in repeatingForms" should work but does not
                                 // perhaps due to trailing blanks? so do it the hard way
@@ -365,7 +400,7 @@ class ClientMetadata
                         join redcap_metadata rm on rd.project_id = rm.project_id
                          and rm.field_name = rd.field_name
                         where rd.project_id = ".$module->getProjectId()."
-                        and element_type = 'text'
+                        and element_type in ('calc', 'text')
                         group by rd.field_name, value
                         order by rd.field_name, upper(value)";
         $autodata = db_query($sql);
@@ -392,12 +427,12 @@ class ClientMetadata
                 //$module->emDebug('merged: ' . print_r($data, TRUE));
             }
         }
-         $module->emLog('YO: ' . print_r($textFieldNames, TRUE));
+        // $module->emDebug('YO1: ' . print_r($textFieldNames, TRUE));
         echo "\n];\n$( '#$currentFieldName"."_ac' ).autocomplete({\n  source: $currentFieldName"."_aclov\n});</script>";
 
         // ok, now the script has been written, add the field definitions
         foreach ($textFieldNames as $textFieldName) {
-            $module->emLog('YO: ' . print_r($textFieldName, TRUE));
+            //$module->emDebug('YO2: ' . print_r($textFieldName, TRUE));
             ?>
     <div id="row_filter" class="list-group filters-fields ui-droppable" style="min-height: 50px; width: 100%; display: none;">
     <div href="#tree-item-2" class="list-group-item draggable1 ui-draggable ui-draggable-handle" data-toggle="collapse" style="padding-left:2.5rem;"><?php echo $textFieldName?><input type="hidden" name="field_name" value="<?php echo $textFieldName?>"><select class="x-form-text x-form-field limiter-operator" name="limiter_operator[]">

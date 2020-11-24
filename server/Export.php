@@ -104,22 +104,21 @@ class Export
                     $primaryJoinInstrument = $instrument;
                     $meta = $this->instrumentMetadata->isRepeating($instrument);
                     $primaryJoinField = $meta['principal_date'];
+                    // before we claim victory here, first verify that the instrument does in fact have a primary date
+                    // if it does not, use its parent's date field
+                    if (strlen( $primaryJoinField) === 0) {
+                        $meta = $this->instrumentMetadata->isRepeating($this->instrumentMetadata->instanceSelectLinked($instrument));
+                        $primaryJoinField = $meta['principal_date'];
+                        $module->emDebug('$primaryJoinField is now ' . $primaryJoinField );
+                    }
                     break;
                 }
             }
         }
-//        $module->emDebug('$json_inp is '.print_r($json_inp,TRUE));
+        $module->emDebug('$json_inp is '.print_r($json_inp,TRUE));
         //  if record_id is missing, add it. Every report needs the record_id
         // look up name of record_id
-
-        // this seems like an awkward way to do this.
-        // why not use $identifier_field = REDCap::getRecordIdField()
-        // or $identifier_field = array_key_first($this->Proj->metadata) ?
-
-        foreach ($this->Proj->metadata as $identifier_field => $firstRecord) {
-            break;
-            // $identifier_field is now correctly set. it is referenced below
-        }
+        $identifier_field = REDCap::getRecordIdField();
         // $record_identifier now contains 'record_id' or whatever the first field is named
         // now look for it in the first pass
         $found_record_identifier = false;
@@ -132,7 +131,8 @@ class Export
             foreach ($json_inp->columns as $column) {
                 $instrument = $column->instrument;
                 if (!isset($json->forms[$instrument])) {
-                    $json->forms[$instrument] = json_decode('{ "fields" : [] }');
+                    $json->forms[$instrument] = json_decode('{ "fieldsToDisplay" : [] }');
+                    $json->forms[$instrument] = json_decode('{ "fieldsToJoin" : [] }');
                     $json->forms[$instrument]->form_name = $column->instrument;
 
                     $meta = $this->instrumentMetadata->isRepeating($column->instrument);
@@ -186,7 +186,8 @@ class Export
                         }
                     }
                 }
-                $json->forms[$column->instrument]->fields[] = $column->field;
+                $json->forms[$column->instrument]->fieldsToJoin[] = $column->field;
+                $json->forms[$column->instrument]->fieldsToDisplay[] = $column->field;
                 $found_record_identifier = $found_record_identifier || ($column->field === $identifier_field);
                 if (!$found_record_identifier) {
                     $json->record_id = $identifier_field;
@@ -241,8 +242,8 @@ class Export
                     $json->forms[$filter->instrument]->foreign_key_field = 'instance';
                     $filter->parent_form = $meta['foreign_key_ref'];
                     // check if the foreign_key_ref is one of the forms
-                    if (!in_array($meta['foreign_key_field'], $json->forms[$filter->instrument]->fields)) {
-                        $json->forms[$filter->instrument]->fields[]=$meta['foreign_key_field'];
+                    if (!in_array($meta['foreign_key_field'], $json->forms[$filter->instrument]->fieldsToJoin)) {
+                        $json->forms[$filter->instrument]->fieldsToJoin[]=$meta['foreign_key_field'];
                     }
                 } else {
                     $filter->parent_form = $this->getFormForField($identifier_field);
@@ -259,8 +260,8 @@ class Export
                                 $json->forms[$filter->instrument]->foreign_key_ref = $child;
                                 $json->forms[$filter->instrument]->foreign_key_field = $childMeta['foreign_key_field'];
                                 //add the foreign key field if it's not already there
-                                if (!in_array($childMeta['foreign_key_field'], $json->forms[$filter->instrument]->fields)) {
-                                    $json->forms[$filter->instrument]->fields[] = $childMeta['foreign_key_field'];
+                                if (!in_array($childMeta['foreign_key_field'], $json->forms[$filter->instrument]->fieldsToJoin)) {
+                                    $json->forms[$filter->instrument]->fieldsToJoin[] = $childMeta['foreign_key_field'];
                                 }
                             }
                         }
@@ -282,7 +283,7 @@ class Export
         $json->forms[$newForm]->form_name = $newForm;
         $json->forms[$newForm]->cardinality = $meta['cardinality'];
         if (isset($meta['principal_date'])) {
-            $json->forms[$newForm]->fields[] = $meta['principal_date'];
+            $json->forms[$newForm]->fieldsToJoin[] = $meta['principal_date'];
         }
     }
 
@@ -353,7 +354,10 @@ class Export
         }
         if ($json->raw_or_label == "label") {
             //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
-            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1), rd.value)";
+            // also keep rd.value first in the coalesce to correctly handle calculated fields.
+            // if the opposite ordering is required for some other scenario, then test for the calculated field
+            // scenario and have two different forms of the coalesce
+            $valSel = "coalesce(rd.value, SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1))";
         } else {
             $valSel = "rd.value";
         }
@@ -408,13 +412,10 @@ class Export
         // Keep the order of the fields as specified by the user
         foreach ($json->forms as $form) {
             // Doing coalesce so nulls will be displayed as '' in output reports
-            foreach ($form->fields as $field) {
-                // if the form is added by filter, we shouldn't expose it to the user
-                if (!$form->added_by_filter) {
-                    $select_fields[] = $field;
-                    $select = $select . (($select == "") ? " " : ", ") . "COALESCE(`" . $field . "`, '') " . "`" . $field . "`";
-                }
-                $all_fields[] = $field;                
+            foreach ($form->fieldsToDisplay as $field) {
+                $select_fields[] = $field;
+                $select = $select . (($select == "") ? " " : ", ") . "COALESCE(`" . $field . "`, '') " . "`" . $field . "`";
+                $all_fields[] = $field;
             }
         }
 
@@ -476,7 +477,7 @@ class Export
             $formSql = (($form->cardinality == 'singleton') ? " ( select rd.record " : " ( select rd.record, COALESCE(rd.instance, '1') instance ");
 
             // Converting redcap_data into a view format for each selected fields
-            foreach ($form->fields as $field) {
+            foreach ($form->fieldsToJoin as $field) {
                 // changed from max to group_contact to handle checkbox values - SDM-109
                 // handling calc type - SDM-119
                 $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
@@ -741,7 +742,7 @@ class Export
                 $filterstr = " exists (select 1 from redcap_data rd, redcap_metadata rm " .
                     "    where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $this->Proj->project_id . " and " .
                     "         rd.field_name = '" . $filter->field . "' and " . $filterstr .
-                    "   and rd.record  = " . $primaryFormname . ".record ) ";
+                    "   and rd.record  = " . $primaryFormName . ".record ) ";
 
                 $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
             } else {
@@ -814,8 +815,8 @@ class Export
      */
     public function isUseTempFile()
     {
-        //return false ;   // SRINI - We do not want cache in dev mode
-        return $this->useTempFile;
+        return false ;   // disable until the issues with stale cache files masking current data have been addressed
+       // return $this->useTempFile;
     }
 
     /**
