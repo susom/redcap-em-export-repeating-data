@@ -478,6 +478,8 @@ class Export
             $form->form_name_alias = $form->form_name . "_a" ;
             if (isset($form->foreign_key_ref)) {
                 $form->foreign_key_ref_alias = trim($form->foreign_key_ref) . "_a" ;
+                if (!in_array($form->foreign_key_field, $json->forms[$form->foreign_key_ref]->fieldsToJoin))
+                    $json->forms[$form->foreign_key_ref]->fieldsToJoin[] = $form->foreign_key_field ;
                 //$form->foreign_key_ref = trim($form->foreign_key_ref) . "_a" ;
             }
         }
