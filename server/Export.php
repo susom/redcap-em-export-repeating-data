@@ -478,10 +478,17 @@ class Export
             $form->form_name_alias = $form->form_name . "_a" ;
             if (isset($form->foreign_key_ref)) {
                 $form->foreign_key_ref_alias = trim($form->foreign_key_ref) . "_a" ;
-                if (!in_array($form->foreign_key_field, $json->forms[$form->foreign_key_ref]->fieldsToJoin))
+                // SDH-132 - add the foreign key field to the fieldstojoin array - only if it is not 'instance' as this is added by default
+                if ($form->foreign_key_field != 'instance' && !in_array($form->foreign_key_field, $json->forms[$form->foreign_key_ref]->fieldsToJoin))
                     $json->forms[$form->foreign_key_ref]->fieldsToJoin[] = $form->foreign_key_field ;
                 //$form->foreign_key_ref = trim($form->foreign_key_ref) . "_a" ;
             }
+            // SDH-132 - add the join key field to the fieldstojoin array - only if it is not 'instance' as this is added by default
+            if (isset($form->join_key_field)) {
+                if ($form->join_key_field != 'instance' && !in_array($form->join_key_field, $form->fieldsToJoin))
+                    $form->fieldsToJoin[] = $form->join_key_field ;
+            }
+
         }
         if (isset($json->filters)) {
             foreach ($json->filters as $filter) {
