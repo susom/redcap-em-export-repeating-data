@@ -117,14 +117,12 @@ class InstrumentMetadata
      */
     public function getDateField($instrument)
     {
-        global $module;
         if (! isset($this->resultArray)) {
             $this->init();
         }
         $dateField = $this->resultArray[$instrument]['principal_date'];
         if (! $dateField) {
             $dateField = $this->resultArray[$this->resultArray[$instrument]['foreign_key_ref']]['principal_date'];
-            $module->emDebug('empty date ' . $dateField ) ;
         }
         return $dateField;
     }
