@@ -117,10 +117,16 @@ class InstrumentMetadata
      */
     public function getDateField($instrument)
     {
+        global $module;
         if (! isset($this->resultArray)) {
             $this->init();
         }
-        return $this->resultArray[$instrument]['principal_date'];
+        $dateField = $this->resultArray[$instrument]['principal_date'];
+        if (! $dateField) {
+            $dateField = $this->resultArray[$this->resultArray[$instrument]['foreign_key_ref']]['principal_date'];
+            $module->emDebug('empty date ' . $dateField ) ;
+        }
+        return $dateField;
     }
 
     /**
@@ -215,7 +221,6 @@ class InstrumentMetadata
                 $lookupTable[$ddEntry['form_name']]['foreign_key_ref'] = $parent_instrument;
                 $lookupTable[$ddEntry['form_name']]['foreign_key_field'] = $ddEntry['field_name'];
                 // add one more entry, indicating that the parent is linked to the child
-
                 $lookupTable[$parent_instrument]['children'][] = $ddEntry['form_name'];
 
             } else if (!isset($lookupTable[$ddEntry['form_name']]['foreign_key_ref'])) {
