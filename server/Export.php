@@ -96,8 +96,13 @@ class Export
 
         $json = json_decode('{ "forms" : []}');
         $json->raw_or_label = $json_inp->raw_or_label;
+        // stash the preview setting, the SQL generation step needs to know
+        $json->preview = $json_inp->preview;  // $config['preview'];
+        $json->record_count = $json_inp->record_count;
+
+
         // look through the incoming spec for the primary-repeating form, since that will be the join key
-        // used by any repeating-date-pivot references. There can be only one...
+        // used by all other repeating-date-pivot references.
         if (is_array($json_inp->cardinality) || is_object($json_inp->cardinality)) {
             foreach ($json_inp->cardinality as $instrument => $value) {
                 if ($value->join === 'repeating-primary') {
@@ -124,14 +129,13 @@ class Export
         // now look for it in the first pass
         $found_record_identifier = false;
 
-        // stash the preview setting, the SQL generation step needs to know
-        $json->preview = $json_inp->preview;  // $config['preview'];
-
         if (is_array($json_inp->columns)) {
 
             foreach ($json_inp->columns as $column) {
                 $instrument = $column->instrument;
+                // if the instrument for this column doesn't exist in final json, create one
                 if (!isset($json->forms[$instrument])) {
+
                     $json->forms[$instrument] = json_decode('{ "fieldsToDisplay" : [] }');
                     $json->forms[$instrument] = json_decode('{ "fieldsToJoin" : [] }');
                     $json->forms[$instrument]->form_name = $column->instrument;
@@ -139,11 +143,15 @@ class Export
                     $meta = $this->instrumentMetadata->isRepeating($column->instrument);
                     $json->forms[$instrument]->cardinality = $meta['cardinality'];
                     $joinType = $json_inp->cardinality->$instrument->join;
+                    // instance select can be of either parent or child form depending on the order of how 
+                    // user selects the forms
                     if ($joinType == 'repeating-instance-select') {
+
                         $json->forms[$instrument]->join_type = 'instance';
                         $json->forms[$instrument]->join_key_field = $meta['foreign_key_field'];
                         $json->forms[$instrument]->foreign_key_field = 'instance';
                         $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'];
+
                         // Following is the case where the parent form comes later than the children form
                         if (empty($meta['foreign_key_ref'])) {
                             $childform = $module->hasChild($column->instrument) ;
@@ -155,21 +163,91 @@ class Export
                             $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'] ;
                             $json->forms[$instrument]->foreign_key_ref = $childform ;
                         }
-                        /*                        
-                        $json->forms[$instrument]->foreign_key_ref = $meta['foreign_key_ref'];
-                        $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'];
-                        */
+
                     } else if ($joinType == 'repeating-date-pivot') {
+
                         $json->forms[$instrument]->join_type = 'date_proximity';
                         $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
                         $json->forms[$instrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
                         $json->forms[$instrument]->primary_date_field = $json_inp->cardinality->$instrument->primary_date;
+
+                        //  repeating form (rhcath)
+                        //  pivot - but has no principal date - but parent has principal date (workingdx)
+                        //  in this case the pirmary date will be from parent 
+                        //  detect this signature by comparing form of the princial date field. If it is not same form,
+                        //  then it comes into this section
+                        if ($this->getFormForField($json_inp->cardinality->$instrument->primary_date) != $instrument) {
+                            // In this case, insert the parent right before the current instrument
+                            // I am not sure how to do this in an efficient way in php - i am just creating another 
+                            // object with newly inserted form. 
+                            $newjson = json_decode('{ "forms" : []}');
+                            $newjson->raw_or_label = $json->raw_or_label ;
+                            $newjson->record_count = $json->record_count ;
+                            $newjson->reportname = $json->reportname ;
+                            $newjson->preview = $json->preview ;
+                            $newjson->project = $json->project ;
+
+                            foreach ($json->forms as $instrument_t => $form_t) {
+                                if ($instrument_t == $instrument) {
+                                    // Transfer the current pivot info to the parent/newly created form
+                                    $parentInstrument = $this->getFormForField($json_inp->cardinality->$instrument->primary_date) ;
+                                    $meta1 = $this->instrumentMetadata->isRepeating($parentInstrument);
+                                    $newjson->forms[$parentInstrument]->form_name = $parentInstrument ;
+                                    $newjson->forms[$parentInstrument]->cardinality = $meta1['cardinality'];
+                                    $newjson->forms[$parentInstrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
+                                    $newjson->forms[$parentInstrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
+                                    $newjson->forms[$parentInstrument]->added_by_filter = true ;
+                                    if (isset($meta1['principal_date'])) {
+                                        $newjson->forms[$parentInstrument]->fieldsToJoin[] = $meta1['principal_date'];
+                                        $newjson->forms[$parentInstrument]->primary_date_field = $meta1['principal_date'];
+                                    }
+                                    // primaryJoinInstrument is the child and $parentPrimaryJoinField is the parent
+                                    $childform = $primaryJoinInstrument ;
+                                    $meta1 = $this->instrumentMetadata->isRepeating($childform);
+                                    $newjson->forms[$parentInstrument]->join_type = 'date_proximity' ;
+                                    $newjson->forms[$parentInstrument]->foreign_key_field = $primaryJoinField; // $meta1['foreign_key_field'] ;
+                                    $newjson->forms[$parentInstrument]->foreign_key_ref = $childform ;
+
+                                    // change current instrument from date pivot to instance (child of newly inserted parent)
+                                    $form_t->join_type = 'instance' ;
+                                    $form_t->join_key_field = $meta['foreign_key_field'] ;
+                                    $form_t->foreign_key_ref = $parentInstrument ;
+                                    $form_t->foreign_key_field = 'instance' ;
+
+                                    // remove the variables related to the date pivot
+                                    unset($form_t->primary_date_field) ;
+                                    unset($form_t->lower_bound) ;
+                                    unset($form_t->upper_bound) ;
+                                    //$form_t->primary_date_field = '' ;
+                                    //$form_t->lower_bound = 0 ;
+                                    //$form_t->upper_bound = 0 ;
+
+                                }
+                                $newjson->forms[$instrument_t] = $form_t ;
+                            }
+                            $json = $newjson ;
+                            continue ;
+                        }
+
+                        // If the principal join field doesn't exist, we need to add the parent form to the array
                         if (!empty($primaryJoinField)) {
+                            // It exists, so it is simple 
                             $json->forms[$instrument]->foreign_key_ref = $primaryJoinInstrument;
                             $json->forms[$instrument]->foreign_key_field = $primaryJoinField;
+
                         } else if (!empty($parentPrimaryJoinField)) {
+
+                            // If it doesn't then look to see if the parent exists in the form
                             if (!array_key_exists($parentPrimaryJoinInstrument, $json->forms)) {
+                                // If it doesn't, create a new form element for the parent and insert it 
+                                // right before the current element.  Again, the following code is not looking good
+                                // but it works.  Find a better way to insert records just before the current element in php
                                 $newjson = json_decode('{ "forms" : []}');
+                                $newjson->raw_or_label = $json->raw_or_label ;
+                                $newjson->record_count = $json->record_count ;
+                                $newjson->reportname = $json->reportname ;
+                                $newjson->preview = $json->preview ;
+                                $newjson->project = $json->project ;
                                 foreach ($json->forms as $instrument_t => $form_t) {
                                     if ($instrument_t == $instrument) {
                                         $meta1 = $this->instrumentMetadata->isRepeating($parentPrimaryJoinInstrument);
@@ -220,7 +298,6 @@ class Export
         }
         $this->add_forms_from_filters($json_inp, $json);
         $json->filters = $json_inp->filters;
-        $json->record_count = $json_inp->record_count;
         $module->emDebug('final json ' . print_r($json, true));
         return $json;
     }
