@@ -288,9 +288,14 @@ class Export
                         }
                     }
                 }
-                $json->forms[$column->instrument]->fieldsToJoin[] = $column->field;
-                $json->forms[$column->instrument]->fieldsToDisplay[] = $column->field;
+                if (!in_array($column->field, $json->forms[$column->instrument]->fieldsToJoin))
+                    $json->forms[$column->instrument]->fieldsToJoin[] = $column->field;
+
+                if (!in_array($column->field, $json->forms[$column->instrument]->fieldsToDisplay))
+                    $json->forms[$column->instrument]->fieldsToDisplay[] = $column->field;
+
                 $found_record_identifier = $found_record_identifier || ($column->field === $identifier_field);
+
                 if (!$found_record_identifier) {
                     $json->record_id = $identifier_field;
                 }
