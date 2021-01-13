@@ -167,11 +167,18 @@ function runQuery(preview, record_count) {
                 showError("Error: " + response.message);
             } else {
                 if (preview) {
-                    var table_data = tableize(response.headers, response.data);
+                    // console.log(response);
+                    t1 = response.t1;
+                    // t2 = response.t2;
+                    var table_data = tableize(t1.headers, t1.data);
                     // console.log(table_data);
                     $("#preview-table-div").replaceWith(table_data);
                     $('#preview-table').DataTable();
                     $("#datatable").show();
+                    // var table_data2 = tableize2(t2.headers, t2.data);
+                    // $("#preview-table-div2").replaceWith(table_data2);
+                    // $('#preview-table2').DataTable();
+                    // $("#datatable2").show();
                 } else if (record_count) {
                     // console.log (response);
                     var count = response.count;
@@ -251,6 +258,28 @@ function tableize(headers, rows) {
     table += '</tbody></table></div>'
     return table;
 }
+
+// function tableize2(headers, rows) {
+//     // datatable.net seems to expect full on <table><tr><td></td></tr></table> markup
+//     var table = '<div id="preview-table-div2"><table id="preview-table2" class="display"><thead>';
+//     headers.forEach(function (header, index) {table +=  '<th>' + header + '</th>';});
+//     table += '</thead><tbody>'
+//     rows.forEach(function (row, index) {
+//         table += '<tr>'
+//         isFirst = true;
+//         row.forEach(function(cell, index) {
+//             if (isFirst) {
+//                 table +=  '<td><a href="' + getInstrumentForField('url') + cell + '">' + cell + '</a></td>';
+//                 isFirst = false;
+//             } else {
+//                 table +=  '<td>' + cell + '</td>';
+//             }
+//         });
+//         table += '</tr>'
+//     });
+//     table += '</tbody></table></div>'
+//     return table;
+// }
 
 function tableize_col(col, index) {
     return '<td>' + col + '</td>';
@@ -333,11 +362,11 @@ function getExportJson(is_preview, formdata, record_count) {
             filter.field = item.value;
         } else if (item.name === 'limiter_operator[]') {
             filter.operator = item.value;
-            if (item.value === 'MAX' || item.value === 'MIN') {
+            if (item.value === 'MAX' || item.value === 'MIN' || item.value === 'EXISTS' || item.value === 'NOT_EXIST') {
                 addFilter = true;
             }
         } else if (item.name === 'limiter_value[]' && item.value) {
-            // console.log('adding '+item.name);
+             // console.log('adding limiter_value '+item.name);
             filter.validation = getInstrumentForField(filter.field + '@validation');
             addFilter = true;
             filter.param = getLabelOrCode(filter.field, item.value, struct.raw_or_label);

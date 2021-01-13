@@ -168,23 +168,22 @@ $port = (PORT === '') ? '' : ':'.PORT;
 
 
                     <!-- if preview is specified, this is where the preview appears -->
-                    <div class="col-md-9 pt-5">
-                        <div id="datatable"  style="display: none;">
-                            <p>
-                                Your data can be previewed below.<br/> If this is not the format you were expecting, you can
-                                adjust the specification above and try again.
-                            </p>
+                <div class="col-md-9 pt-5">
+                    <div id="datatable"  style="display: none;">
+                        <p>
+                            Your data can be previewed below.<br/> If this is not the format you were expecting, you can
+                            adjust the specification above and try again.
+                        </p>
 
-                            <div id="preview-table-div"></div>
+                        <div id="preview-table-div"></div>
 
-
-                            <p></p>
-                            <button type="button" id="do_export2" onclick="runQuery(false, false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" > <i class="fas fa-file-download"></i> Export Data</button>
-
-                        </div>
+                        <p></p>
+                        <button type="button" id="do_export2" onclick="runQuery(false, false)"  class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" > <i class="fas fa-file-download"></i> Export Data</button>
 
                     </div>
+
                 </div>
+
             </div>
         </form>
     </div>

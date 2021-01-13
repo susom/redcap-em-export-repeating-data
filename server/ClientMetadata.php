@@ -105,8 +105,8 @@ class ClientMetadata
                         element.appendTo(parent);
                         // add exists or not-exists filters for all fields
                         let limiterOperator = element.find('.limiter-operator');
-                        // limiterOperator.append('<option class="minmax" value="EXISTS">exists</option>');
-                        // limiterOperator.append('<option class="minmax" value="NOTEXIST">does not exist</option>');
+                        limiterOperator.append('<option value="EXISTS">exists</option>');
+                        limiterOperator.append('<option value="NOT_EXIST">does not exist</option>');
                         // add last or earliest filter for date fields
                         if (data.indexOf('class="date_') > -1) {
                             limiterOperator.append('<option class="minmax" value="MAX">latest</option>');
@@ -118,11 +118,14 @@ class ClientMetadata
                             if ($( '#' + fieldname +'_op' + " option:selected").val() =='MAX' ||
                                 $( '#' + fieldname +'_op' + " option:selected").val() =='MIN' ||
                                 $( '#' + fieldname +'_op' + " option:selected").val() =='EXISTS' ||
-                                $( '#' + fieldname +'_op' + " option:selected").val() =='NOTEXIST') {
-                                $('#' + fieldname +'_ac').val('');
-                                $('#' + fieldname +'_ac').hide();
+                                $( '#' + fieldname +'_op' + " option:selected").val() =='NOT_EXIST') {
+                                $('#' + fieldname +'_ac').val(''); // text box for free-text variables
+                                $('#' + fieldname +'_ac').hide(); // text box for free-text variables
+                                element.find('.limiter-value').val(''); // select list for structured variables
+                                element.find('.limiter-value').hide(); // select list for structured variables
                             } else {
-                                $('#' + fieldname +'_ac').show();
+                                $('#' + fieldname +'_ac').show();// text box for free-text variables
+                                element.find('.limiter-value').show(); // select list for structured variables
                             }
                         })
                         if (restore) {
@@ -438,10 +441,12 @@ class ClientMetadata
     <div href="#tree-item-2" class="list-group-item draggable1 ui-draggable ui-draggable-handle" data-toggle="collapse" style="padding-left:2.5rem;"><?php echo $textFieldName?><input type="hidden" name="field_name" value="<?php echo $textFieldName?>"><select class="x-form-text x-form-field limiter-operator" name="limiter_operator[]">
 	<option value="E">=</option>
 	<option value="NE">not =</option>
-	<option value="CONTAINS">contains</option>
-	<option value="NOT_CONTAIN">does not contain</option>
+            <option value="CONTAINS">contains</option>
+            <option value="NOT_CONTAIN">does not contain</option>
 	<option value="STARTS_WITH">starts with</option>
 	<option value="ENDS_WITH">ends with</option>
+            <option value="EXISTS">exists</option>
+            <option value="NOT_EXIST">does not exist</option>
 </select>
 <input name="limiter_value[]" onblur="" class=" x-form-text x-form-field limiter-value" maxlength="255" style="max-width:150px;" value="" id="<?php echo $textFieldName?>_ac" type="text">
 <select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">
