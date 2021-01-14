@@ -101,9 +101,8 @@ And this is what it will look like when PFT is selected:
 
 <img src="./assets/redug_9.png" width="800"/>
 
-There are two different behaviors supported for the secondary (Repeating: Pivot & Filter) repeating forms.
-If you supply at least one value in the blanks prompting for the minimum and maximum number of days between the two records, either one or zero rows of the secondary form will be added to the final report. The number of rows in the final report will correspond to the number of matching rows in the primary/anchor report. Only the values in the secondary instrument closest in time to the primary and within the specified date proximity limits will be included.
-If you do not supply any values in the blanks, you will get back rows for all matching records joined by date.
+The primary instrument determines what data is included in the report. An instrument labeled as "Repeating: Pivot & Filter" may add columns of data, but will not add any rows.   Either one or zero values from the secondary form will be included in the final report, such that the included value in the secondary instrument is the one closest in time to the principal date of the primary within the specified date proximity limits.  If you leave a date field blank, the system fills in 999, which is just a few months short of 3 years.
+
 
 For example, assume patient 1 has two visits, one in July, the other in August, and three PFT test results in January, June and September. 
 If you write a report with Visit as the Primary and PFT as the secondary, specifying a 2 day before and after limit, you will get back two rows for the two visits, with blanks for the PFT test results, as none of the PFT tests occurred within 2 days of a visit.
