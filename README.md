@@ -79,8 +79,8 @@ to is the field used to capture the parent instance number, but any field on the
 The specified forms and filters are processed in multiple passes, as follows
 1. First the specification is searched for instruments that are linked by an
    "Instance Select" action tag. 
-   SQL is generated that joins all child instruments to the parent
-   using the relationships specified in the action tag and also applying any relevant filters. 
+   SQL is generated that inner joins all child instruments to the parent
+   using the relationships specified in the action tag and also applying any relevant filters<sup>*</sup>. 
    This SQL is then cached for later use.
 2. In the second pass, the outer select is generated with columns in the user-specified order.
    The resulting SQL fragment is then stashed in a variable for reference later
@@ -95,7 +95,10 @@ The specified forms and filters are processed in multiple passes, as follows
    with a suitable join clause, 
    namely, an inner join if the instrument being joined to was non-repeating aka singleton, otherwise a left outer join.
    
-The application of filters inside each relevant inline table rather than globally applying them to
+Then at the very end the outer select from the 2nd pass is prefixed to the start of the query, and if the user is merely
+previewing the data a limit clause is added to the very end.
+
+<sup>*</sup>The application of filters inside each relevant inline table rather than globally applying them to
 the entire SQL statement allows the end user to use filters in conjunction with date proximity
 without then unexpectedly losing rows of data from the primary repeating form.
 
