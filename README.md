@@ -75,4 +75,28 @@ one of the fields in the form.  Assuming you are also configuring an instance ta
 in the parent to summarize the child records, the obvious field to add this action tag
 to is the field used to capture the parent instance number, but any field on the child instrument will work.
 
-Last Updated: 10/29/2020 12:57pm
+### Implementation Notes
+The specified forms and filters are process in multiple passes, as follows
+1. First the specification is searched for instruments that are linked by an
+   "Instance Select" action tag. 
+   SQL is generated that joins all child instruments to the parent
+   using the relationships specified in the action tag and also applying any relevant filters. 
+   This SQL is then cached for later use.
+2. In the second pass, the outer select is generated with columns in the user-specified order.
+   The resulting SQL fragment is then stashed in a variable for reference later
+3. In pass #3, we start to actually build up the SQL query, starting with all singleton forms.
+   Singleton data can either stand on its own or, if one or more repeating forms are 
+   included, singleton data should be inner joined to the primary repeating form. 
+4. In the final pass we go back through the supplied list of instruments, skipping over
+   singleton instruments and children linked to an "Instance Select" parent,
+   since both have already been dealt with. If the instrument is the parent in an "Instance Select"
+   relationship, its cached SQL is now appended to the final query; otherwise a "date proximity" pattern
+   is used to generate the SQL for the inline table. In both cases the inline table SQL is joined
+   with a suitable join clause, 
+   namely, an inner join if the instrument being joined to was non-repeating aka singleton, otherwise a left outer join.
+   
+The application of filters inside each relevant inline table rather than globally applying them to
+the entire SQL statement allows the end user to use filters in conjunction with date proximity
+without then unexpectedly losing rows of data from the primary repeating form.
+
+Last Updated: 01/14/2021 11:45am

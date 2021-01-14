@@ -340,8 +340,8 @@ class Export
     // then the parent must be included
     // also if there is a filter from a table that is not in columns,
     // then the table for the filter needs to be included as well as it's parent
-    function add_forms_from_filters($json_inp, $json) {
-        global $module;
+    function add_forms_from_filters($json_inp, $json)
+    {
 
         $identifier_field = REDCap::getRecordIdField();
         foreach ($json_inp->filters as $filter) {
@@ -380,7 +380,6 @@ class Export
                     if ($has_children) {
                         // if any of the children are in the forms, then set them to join_type instance
                         foreach ($meta['children'] as $child) {
-//                            $module->emDebug("Processing children :" . $child . " isset " . isset($json->forms[$child])) ;
                             if (isset($json->forms[$child])) {
                                 $childMeta = $this->instrumentMetadata->isRepeating($child);
                                 $json->forms[$filter->instrument]->join_type='instance';
@@ -399,7 +398,8 @@ class Export
         }
     }
 
-    function add_form_to_spec($newForm, $json) {
+    function add_form_to_spec($newForm, $json)
+    {
         $meta = $this->instrumentMetadata->isRepeating($newForm);
         $json->forms[$newForm]->form_name = $newForm;
         $json->forms[$newForm]->cardinality = $meta['cardinality'];
@@ -465,16 +465,25 @@ class Export
         [filters] =>
     )
     */
+    /**
+     * This is the function that takes the Json coming from the client and converts it into SQL,
+     * executes the SQL, and returns the restuls to the client
+     * There are two main paths
+     * 1.  the client is asking just for a count of patients matching a single filter, and
+     * 2.  the client has clicked either Preview or Export, and wants an actual report
+    */
     function runQuery($json)
     {
         global $module;
 
         $module->emDebug("Input Json :" . print_r($json,TRUE)) ;
 
+        // look up the default row limit and set to 200 if not otherwise specified in the EM config
         $rowLimit = $module->getProjectSetting('preview-record-limit');
         if (!isset($rowLimit)) {
             $rowLimit = 200;
         }
+
         if ($json->raw_or_label == "label") {
             //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
             $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1), rd.value)";
@@ -482,10 +491,8 @@ class Export
             $valSel = "rd.value";
         }
         $project_id = $this->Proj->project_id;
-//        $select = "";
-//        $from = "";
 
-        // record count feature - as explained by Susan
+        // record count feature - the end-user has clicked the "count" button in the filter panel
         if ($json->record_count === 'true') {
 
             $sql = "select count(distinct rdm.record) as row_count from redcap_data rdm where rdm.project_id = " . $project_id . " AND ";
@@ -525,175 +532,29 @@ class Export
             return $result;
         }
 
-        $select_fields = array();  // Fields which will be returned to the caller
-//        $all_fields = array();  // fields including the filters in the selected instruments
-//
+        // if we reach this point, the user is asking for data rather than counts
+
+        // whether or not the user has explicitly asked for the record_id, we always need to return it, as
+        // it is the primary indication of which patient the data is associated with.
+        // Also it is hyperlinked to the underlying record in the preview
         $recordFieldIncluded = !isset($json->record_id);
-////        $module->emDebug('is record_id included? ' . $recordFieldIncluded . ' ' . $json->record_id);
-//        $primaryFormName = "";
-//
-//        // Keep the order of the fields as specified by the user
+        if (! $recordFieldIncluded) {
+            array_unshift($select_fields, $json->record_id);   // add record_id as the first field in the fields array
+        }
+
+        // Keep the order of the fields as specified by the user
+        $select_fields = array();  // Fields which will be returned to the caller
         foreach ($json->forms as $form) {
             // Doing coalesce so nulls will be displayed as '' in output reports
             foreach ($form->fieldsToDisplay as $field) {
                 $select_fields[] = $field;
-//                $select = $select . (($select == "") ? " " : ", ") . "COALESCE(`" . $field . "`, '') " . "`" . $field . "`";
-//                $all_fields[] = $field;
             }
         }
-//
-//        foreach ($json->forms as $formIdx => $form) {
-//            $form->form_name = trim($form->form_name) ;
-//            $form->form_name_alias = $form->form_name . "_a" ;
-//            if (isset($form->foreign_key_ref)) {
-//                $form->foreign_key_ref_alias = trim($form->foreign_key_ref) . "_a" ;
-//                // SDH-132 - add the foreign key field to the fieldstojoin array - only if it is not 'instance' as this is added by default
-//                if ($form->foreign_key_field != 'instance' && !in_array($form->foreign_key_field, $json->forms[$form->foreign_key_ref]->fieldsToJoin))
-//                    $json->forms[$form->foreign_key_ref]->fieldsToJoin[] = $form->foreign_key_field ;
-//                //$form->foreign_key_ref = trim($form->foreign_key_ref) . "_a" ;
-//            }
-//            // SDH-132 - add the join key field to the fieldstojoin array - only if it is not 'instance' as this is added by default
-//            if (isset($form->join_key_field)) {
-//                if ($form->join_key_field != 'instance' && !in_array($form->join_key_field, $form->fieldsToJoin))
-//                    $form->fieldsToJoin[] = $form->join_key_field ;
-//            }
-//
-//        }
-//        if (isset($json->filters)) {
-//            foreach ($json->filters as $filter) {
-//                $filter->instrument = $filter->instrument . "_a" ;
-//            }
-//        }
-////        $module->emDebug("final json after aliasing :" . print_r($json, TRUE)) ;
-//
-//        foreach ($json->forms as $formIdx => $form) {
-//
-//            // To identify the key instrument - first instrument is considered primary and all other instruments will
-//            // be joined as left outer joins  - sorting is done in earlier loop
-//
-//            $primaryForm = ($from == "");
-//            if ($primaryForm) {
-//                $primaryFormName = $form->form_name_alias;
-//            }
-//
-//            // mapping null instance to '1'
-//            $formSql = (($form->cardinality == 'singleton') ? " ( select /*line599a*/ rd.record " : " ( select /*line599b*/ rd.record, COALESCE(rd.instance, '1') instance ");
-//
-//            // Converting redcap_data into a view format for each selected fields
-//            foreach ($form->fieldsToJoin as $field) {
-//                // changed from max to group_contact to handle checkbox values - SDM-109
-//                // handling calc type - SDM-119
-//                $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-//                                                    " when rd.field_name = '" . $field . "' then $valSel end separator '\\n') `" . $field . "` ";
-//            }
-//
-//            // Add to the view, if it is included in the filters also
-//            if (is_array($json->filters) || is_object($json->filters)) {
-//                foreach ($json->filters as $filter) {
-//                    if ($filter->instrument == $form->form_name_alias && !in_array($filter->field, $select_fields)) {
-//                        $all_fields[] = $filter->field;
-//                        $formSql = $formSql . ", group_concat(distinct case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-//                                                                     "  when rd.field_name = '" . $filter->field . "' then $valSel end separator '\\n') `" . $filter->field . "` ";
-//
-//                    }
-//                }
-//            }
-//
-//            // date proximity is a very special case - this is the first try - not sure about the performance yet
-//            // Test with realistic data set and change if needed.
-//            if ($form->join_type == "date_proximity") {
-//
-//                $upperBoundSet = (isset($form->upper_bound) && strlen(trim($form->upper_bound)) > 0);
-//                $lowerBoundSet = (isset($form->lower_bound) && strlen(trim($form->lower_bound)) > 0);
-//
-//                $formSql = "Select distinct " . $form->form_name . "_int.*, " . $form->form_name . "_dproxy." . $form->foreign_key_ref . "_instance " .
-//                    "From " .
-//                    $formSql . " FROM redcap_data rd, redcap_metadata rm " .
-//                    "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " .
-//                    "GROUP BY rd.record, rd.instance ) " . $form->form_name . "_int, " .
-//                    " (select rd.record, COALESCE (rd.`instance`, 1) as " . $form->foreign_key_ref . "_instance , rd.value as " . $form->foreign_key_field . " , " .
-//                    "    (select COALESCE (rd2.`instance` , 1) from redcap_data rd2, redcap_metadata rm2 " .
-//                    "      where rd2.project_id = rm2.project_id and rm2.field_name = rd2.field_name and rd2.project_id = " . $project_id . " " .
-//                    "           and rd2.field_name = '" . $form->primary_date_field . "' and rd2.record  = rd.record " .
-//                    ($lowerBoundSet ? ("   and datediff(rd.value, rd2.value) <= " . $form->lower_bound . " ") : " ") .
-//                    ($upperBoundSet ? ("   and datediff(rd2.value, rd.value) <= " . $form->upper_bound . " ") : " ") .
-//                    "      order by abs(datediff(rd2.value, rd.value)) asc limit 1 " .
-//                    "    ) as " . $form->form_name . "_instance " .
-//                    "  from redcap_data rd, redcap_metadata rm " .
-//                    "  where rd.project_id = rm.project_id and rd.project_id  = " .$project_id . " " .
-//                    "     and rm.field_name = rd.field_name	and rd.field_name = '" . $form->foreign_key_field . "' and rm.form_name = '" . $form->foreign_key_ref . "' " .
-//                    "         ) " . $form->form_name . "_dproxy " .
-//                    "where " . $form->form_name . "_int.instance = " . $form->form_name . "_dproxy." . $form->form_name . "_instance " .
-//                    " and " . $form->form_name . "_int.record = " . $form->form_name . "_dproxy.record ) " . $form->form_name_alias ; // . " ON " .
-//                    //" ( " . $form->form_name . ".record = " . $form->foreign_key_ref . ".record " .
-//                    //"    and " . $form->form_name . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref . ".instance ) " ;
-//
-//                //$formSql = $formSql . ") " . $form->form_name_alias ;
-//
-//                if ($primaryForm) {
-//                    $from = "FROM " . $formSql;
-//                } else {
-//                    $from = $from . " left outer join ( " . $formSql . " ON ( " . $form->form_name_alias . ".record = " . $primaryFormName . ".record  " .
-//                        "and " . $form->form_name_alias . "." . $form->foreign_key_ref . "_instance = " . $form->foreign_key_ref_alias . ".instance )";
-//                }
-//
-//            } else {
-//
-//                // Singletons - group by the record only
-//                if ($form->cardinality == "singleton") {
-//                    $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " .
-//                        "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " .
-//                        "GROUP BY rd.record";
-//                } else {   // for repeating forms group by record and instance
-//                    $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " .
-//                        "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " .
-//                        "GROUP BY rd.record, rd.instance";
-//                }
-//
-//                $formSql = $formSql . ") " . $form->form_name_alias ;
-//
-//                if ($primaryForm) {
-//                    $from = "FROM " . $formSql;
-//                } else {
-//                    $from = $from . " left outer join " . $formSql . " ON ( " . $form->form_name_alias . ".record = " . $primaryFormName . ".record  ";
-//
-//                    // If it is instance join type, join with "instance" column of the parent
-//                    if (isset($form->join_type)) {
-//                        if ($form->join_type == "instance") {
-//                            //$form->join_condition = $form->foreign_key_field . " = " . $form->foreign_key_ref . ".instance";
-//                            $form->join_condition = $form->form_name_alias . "." . $form->join_key_field . " = " . $form->foreign_key_ref_alias . "." . $form->foreign_key_field;
-//                        } elseif ($form->join_type == "lookup") {  // Not implemented yet. To support joining any columns
-//                            $form->join_condition = $form->form_name_alias . "." . $form->join_key_field . " = " . $form->foreign_key_ref_alias . "." . $form->foreign_key_field;
-//                        }
-//                    }
-//
-//                    if (isset($form->join_condition)) {
-//                        $from = $from . " and " . $form->join_condition;
-//                    }
-//
-//                    $from = $from . " ) ";
-//                }
-//            }
-//        }
-//
-        // If record_id is not chosen add it to the SQL
-//        if ($recordFieldIncluded)
-//            $sql = "Select " . $select . " " . $from;
-//        else {
-//            $sql = "Select " . $primaryFormName . ".record as " . $json->record_id . ", " . $select . " " . $from;
-        if (! $recordFieldIncluded) {
-            array_unshift($select_fields, $json->record_id);   // add record_id as the first field in the fields array
-        }
-//// It was this pattern, applying the filters at the very end globally, that triggered the re-write.
-//        if (isset($json->filters)) {
-//            $filtersql = $this->processFilters($json->filters, $all_fields, $valSel, $primaryFormName);
-//            if (strlen($filtersql) > 0) {
-//                $sql = $sql . " where " . $filtersql;
-//            }
-//        }
 
+        // generate the SQL
         $sql = $this->getSqlMultiPass($json, $this->Proj->project_id);
 
+        // append a limit clause if they are asking for a preview rather than a data export
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
             $sql = $sql . " LIMIT " . $rowLimit;
         }
@@ -701,6 +562,7 @@ class Export
         $module->emDebug($sql);
 
         if (strlen(trim($sql)) > 0) {
+            // actually execute the sql - this is where the magic happens!
             $rptdata = db_query($sql);
 
             $result["status"] = 1; // when status = 0 the client will display the error message
@@ -712,9 +574,6 @@ class Export
                 $result["message"] = $dberr;
             } else {
                 $result["t1"]  = $this->package($json->preview, $select_fields, $rptdata);
-
-//                $result["t2"] = $this->package($json->preview, $select_fields, $rptdata);
-
             }
         } else {
             $result["status"] = 0;
@@ -724,7 +583,9 @@ class Export
         return $result;
     }
 
-    function package($preview, $select_fields, $rptdata) {
+    // transform the results returned by the SQL query by adding separate columns for each checkbox value
+    function package($preview, $select_fields, $rptdata)
+    {
         $data = [];
         if ("false" == $preview) {
             // when exporting .csv, the return csv is in $data
@@ -736,7 +597,6 @@ class Export
                 $cells = array_merge($cells, $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]]));
             }
             $data[] = $cells;
-            //$module->emDebug('merged: ' . print_r($data, TRUE));
         }
         // when previewing, the return data is in $result, which includes $data
         $result["headers"] = $this->pivotCbHdr($select_fields);
@@ -744,6 +604,7 @@ class Export
         return $result;
     }
 
+    // used to determine whether a field is a date
     function endsWith($string, $endString)
     {
         $len = strlen($endString);
@@ -753,6 +614,7 @@ class Export
         return (substr($string, -$len) === $endString);
     }
 
+    // this is where the Json for filters gets converted into SQL
     function filter_string($filter)
     {
         $col =  $filter->field;
@@ -812,71 +674,20 @@ class Export
 
         return $filterstr;
     }
-    // Just the raw format values. v1 - needs iteration
-    /*  Possible Validation types - Right now, code handles only dates, numbers as special case
-    "date_dmy"
-    "date_mdy"
-    "date_ymd"
-    "datetime_dmy"
-    "datetime_mdy"
-    "datetime_ymd"
-    "datetime_seconds_dmy" (D-M-Y H:M:S)
-    "datetime_seconds_mdy" (M-D-Y H:M:S)
-    "datetime_seconds_ymd" (Y-M-D H:M:S)
-    "email"
-    "integer"
-    "number"
-    "phone" Phone (North America)
-    "time" (HH:MM)
-    "zipcode" Zipcode (U.S.)
-    */
-//    function processFilters($filters, $all_fields, $valSel, $primaryFormName)
-//    {
-//
-////        global $module;
-//
-////        $module->emDebug('all fields :' . print_r($all_fields, TRUE));
-//
-//        $filtersql = "";
-//
-//        foreach ($filters as $filter) {
-//
-//            $filterstr = $this->filter_string($filter);
-//
-//            // SRINI - 11/23/2020: Code shouldn't go into the following based on new approach of adding
-//            // forms to the spec.  Keeping this code for reference. will remove once tested and confirmed.
-//            if (!in_array($filter->field, $all_fields)) {
-//
-//                $filterstr = str_replace($filter->instrument . "." . $filter->field, $valSel, $filterstr);
-//
-//                $filterstr = " exists (select 1 from redcap_data rd, redcap_metadata rm " .
-//                    "    where rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id  = " . $this->Proj->project_id . " and " .
-//                    "         rd.field_name = '" . $filter->field . "' and " . $filterstr .
-//                    "   and rd.record  = " . $primaryFormName . ".record ) ";
-//
-//                $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
-//            } else {
-//                $filtersql = $filtersql . $filterstr . " " . $filter->boolean . " ";
-//            }
-//        }
-//
-//        if (substr($filtersql, -4) == "AND " || substr($filtersql, -4) == "OR ")
-//            $filtersql = substr($filtersql, 0, strlen($filtersql) - 4);
-//
-//        return $filtersql;
-//
-//    }
 
+    // called indirectly by package() which adds column names to the header for checkbox fields
     private function isCheckbox($field)
     {
         return $this->Proj->metadata[$field]['element_type'] === 'checkbox';
     }
 
+    // called indirectly by package() which adds column names to the header for checkbox fields
     private function cbLov($field)
     {
         return $this->Proj->metadata[$field]['element_enum'];
     }
 
+    // called by package(); adds column names to the header for checkbox fields
     private function pivotCbHdr($headers)
     {
         $newHeaders = [];
@@ -895,6 +706,7 @@ class Export
         return $newHeaders;
     }
 
+    // called by package(); adds column values to each row of data for checkbox fields
     private function pivotCbCell($field, $cellValue)
     {
         $newCells = [];
@@ -1033,36 +845,10 @@ class Export
         return $this->Proj->metadata[$fieldName]['form_name'];
     }
 
-//    public function getInlineTablePivot($fieldName, $formName, $pid, $rd, $rm) {
-//        $sql= "select /*line1038*/ $rd.record, COALESCE($rd.instance, '1') ".$formName."_instance,
-//        group_concat(distinct case when $rd.field_name = '$fieldName' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then $rd.value
-//                                   when $rd.field_name = '$fieldName' then coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat($rd.value, ',')) + length($rd.value) + 2),'\\n', 1), $rd.value)
-//                              end
-//                              separator '\n') `$fieldName`
-//      FROM redcap_data $rd,
-//           redcap_metadata $rm
-//      WHERE $rd.project_id = $rm.project_id
-//        and $rm.field_name = $rd.field_name
-//        and $rd.project_id = $pid
-//        and $rm.form_name = '$formName'
-//      ";
-//        if ($simple) {
-//            return $sql . "GROUP BY $rd.record";
-//        } else {
-//            return $sql . "and rd2.field_name = '$fieldName'
-//                                          and rd2.record = rd.record
-//                                          and datediff(rd.value, rd2.value) <= 1
-//                                          and datediff(rd2.value, rd.value) <= 40
-//                                        order by abs(datediff(rd2.value, rd.value)) asc
-//                                        limit 1";
-//        }
-//    }
-
+    // processing loop for invoking filter_string(), the function that does all the actual work
+    // results are aggregated and returned as a single SQL fragment
     function handleFilters($filters, $formName, $prefix)
     {
-//        global $module;
-//
-//        $module->emDebug('filters :' . print_r($filters, TRUE));
 
         $filtersql = " $prefix ";
         if (is_array($filters) || is_object($filters)) {
@@ -1082,12 +868,14 @@ class Export
             $filtersql = "";
         }
 
-
         return $filtersql;
 
     }
 
-    function getFields($instrument, $fields) {
+    // this coalesce pattern is used throughout; it replaces NULL with empty string ,
+    // resulting in much nicer looking reports
+    function getFields($instrument, $fields)
+    {
         $fieldstr = "";
         $cnt = 0;
         if (is_array($fields) || is_object($fields)) {
@@ -1103,7 +891,12 @@ class Export
         return $fieldstr;
     }
 
-    function getSqlMultiPass($json, $pid) {
+    // turn the query specification in Json into SQL
+    // we use multiple passes in order to separate out changes in table ordering that impact the SQL from
+    // table ordering that should be ignored. For example, all fields in singleton (non-repeating)
+    // instruments should be inner joined to the primary repeating form.
+    function getSqlMultiPass($json, $pid)
+    {
         global $module;
         $recordId =  REDCap::getRecordIdField();
         $finalSql = "";
@@ -1183,7 +976,8 @@ class Export
         return $finalSql;
     }
 
-    function getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable) {
+    function getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable)
+    {
         global $module;
         $recordId = REDCap::getRecordIdField();
         $innerTableSql = "";
@@ -1229,7 +1023,12 @@ class Export
         }
         return $finalSql;
     }
-    function getSelectClause($json) {
+
+    // generate the top level select clause for all specified field and instruments
+    // this is required because the inline tables all have additional fields used as join fields
+    // that need to be filtered out of the report returned to the end-user
+    function getSelectClause($json)
+    {
         $selectClause = "";
         $cntSelectClauses = 0;
         foreach ($json->forms as $formName => $spec) {
@@ -1258,6 +1057,7 @@ class Export
         }
         return $selectClause;
     }
+
     function str_lreplace($search, $replace, $subject)
     {
         $pos = strrpos($subject, $search);
@@ -1269,6 +1069,7 @@ class Export
 
         return $subject;
     }
+
     function getJoin($formName, $filters) {
         global $module;
         // if there is a matching supplied filter, use inner join, because that's the semantics of a filter
@@ -1283,54 +1084,8 @@ class Export
         return " LEFT OUTER JOIN ";
     }
 
-/*    function getSql($json, $pid) {
-        $recordId =  REDCap::getRecordIdField();
-        $finalSql = "";
-        $joinClause = "";
-        $selectClause = "";
-        $cnt = 0;
-        $filters = $json->filters;
-        foreach ($json->forms as $formName => $spec) {
-            $fieldNames = $this->augment($formName, $spec->fieldsToJoin, $filters);
-            $fieldsToDisplay = $spec->fieldsToDisplay;
-            if ($cnt == 0) {
-                if (strlen($json->record_id) > 0) {
-                    // hard-code a reference to the record_id field
-                    // every report should be prefixed with the record_id regardless of whether or not they asked for it
-                    array_unshift($fieldsToDisplay, $json->record_id);
-                }
-            } else if (count($fieldsToDisplay) > 0) {
-                $selectClause .= ",";
-            }
-
-            $selectClause .= $this->getFields($formName, $fieldsToDisplay);
-            if ($cnt > 0) {
-                if ($spec->join_type == 'date_proximity') {
-                    $finalSql .= " LEFT OUTER JOIN ";
-                } else {
-                    $finalSql .= " INNER JOIN ";
-                }
-            }
-
-            $finalSql .= $this->getInlineTableSql($fieldNames, $formName, $pid, $spec, $filters);
-            if ($cnt > 0) {
-                if ($spec->join_type != 'date_proximity') {
-
-                    $finalSql .= " ON $formName.$recordId=$priorTable.$recordId ";
-                }
-                if ($spec->join_type == 'instance') {
-                    $finalSql .= "  AND $formName.$spec->join_key_field = " . $spec->foreign_key_ref . "_instance";
-                }
-            }
-            // date_proximity has the join hard-coded; see getDateProximityTableJoin()
-            $cnt ++;
-            $priorTable = $formName;
-        }
-        $finalSql = "select distinct " . $selectClause . " FROM " . $finalSql . $joinClause ;
-        return $finalSql;
-    } */
-
-    function augment($formName, $fieldsToJoin, $filters) {
+    function augment($formName, $fieldsToJoin, $filters)
+    {
 //        global $module;
         foreach ($filters as $spec) {
             if ($spec->instrument == $formName && !in_array($spec->field, $fieldsToJoin)) {
@@ -1342,7 +1097,8 @@ class Export
         return $fieldsToJoin;
     }
 
-    function getFieldList($fieldNames) {
+    function getFieldList($fieldNames)
+    {
         $fieldList = "";
         $recordId =  REDCap::getRecordIdField();
 
@@ -1384,7 +1140,8 @@ class Export
 
     // use case: 1. rhcath 2. visit 3. workingdx
     // i.e. date pivot on a table that is the parent in a parent-child relationship
-    function getInnerTableSql($formName, $fieldList,  $pid) {
+    function getInnerTableSql($formName, $fieldList,  $pid)
+    {
         $recordId =  REDCap::getRecordIdField();
         return "select  rd.record as $recordId,
                         COALESCE(rd.instance, '1') ".$formName."_instance,
@@ -1398,7 +1155,8 @@ class Export
                                 GROUP BY rd.record, rd.instance";
     }
 
-    function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters) {
+    function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters)
+    {
         $recordId =  REDCap::getRecordIdField();
         $filter = $this->handleFilters($filters, $formName, 'AND');
         $tableSql =  "(Select distinct ".$formName."_int.*, ".$formName."_dproxy.".$spec->foreign_key_ref."_instance
@@ -1434,7 +1192,8 @@ class Export
         return $pieces;
     }
 
-    function getTableJoinClause($recordId, $fieldList, $pid, $formName, $filters,  $grouper,  $instanceSelect) {
+    function getTableJoinClause($recordId, $fieldList, $pid, $formName, $filters,  $grouper,  $instanceSelect)
+    {
         $finalSql= "(select * from (select /*line1382*/ rd.record  $recordId,
         $instanceSelect
         $fieldList
