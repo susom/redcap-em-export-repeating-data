@@ -76,7 +76,7 @@ in the parent to summarize the child records, the obvious field to add this acti
 to is the field used to capture the parent instance number, but any field on the child instrument will work.
 
 ### Implementation Notes
-The specified forms and filters are process in multiple passes, as follows
+The specified forms and filters are processed in multiple passes, as follows
 1. First the specification is searched for instruments that are linked by an
    "Instance Select" action tag. 
    SQL is generated that joins all child instruments to the parent
