@@ -294,6 +294,9 @@ function toggleIcon(id) {
         jqueryElement.removeClass('fa-angle-right');
         jqueryElement.addClass('fa-angle-down');
     }
+    // SRINI - SDM-135 - following is addded to avoid sortable issues 
+    // when closing and opening the div
+    $( "#column_spec" ).sortable( "refreshPositions" );
 }
 
 function saveExportJson() {
