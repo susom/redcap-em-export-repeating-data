@@ -316,7 +316,14 @@ class ClientMetadata
                     {
                         activeClass: "ui-state-default",
                         hoverClass: "ui-state-hover",
-                        accept: ":not(.instrument)",
+                        //accept: ":not(.instrument), :not(.ui-sortable-handle)",
+                        accept: function(draggable) {    // SRINI Should not accept, if it is from the sortable div also
+                            if (draggable.hasClass("instrument") || draggable.hasClass("ui-sortable-handle"))
+                                return false ;
+                            else
+                                return true ;
+                            //if ($(this).)
+                        },
                         drop: function( event, ui )
                         {
                             $( "#tip_exporting_all_rows" ).remove();
@@ -361,9 +368,15 @@ class ClientMetadata
 
                             $( panelSelector  ).show();
                             tagRepeatables();
+
+                            // SRINI - SDM-135 - following is addded to avoid sortable issues 
+                            // when closing and opening the div
+                            $( "#column_spec" ).sortable( "refreshPositions" );
+
                         }
                     }).sortable(
                     {
+                        tolerance : "pointer",
                         update: function(event, ui)
                         {
                             tagRepeatables();
@@ -381,6 +394,11 @@ class ClientMetadata
                     $("#upper-bound-" + instrumentName).val("");
                     $("#lower-bound-" + instrumentName).val("");
                     tagRepeatables();
+
+                    // SRINI - SDM-135 - following is addded to avoid sortable issues 
+                    // when closing and opening the div
+                    $( "#column_spec" ).sortable( "refreshPositions" );
+
                 });
 
                 $(document).on('click', '.delete-criteria', function () {
