@@ -169,7 +169,6 @@ class ClientMetadata
                 // set the appropriate classes for panel heading coloring and show/hide the correct badge
                 $(".panel:visible").each(function() {
                     instrumentName= $(this).attr('id').substr(6);
-
                     if ($( this ).find(".repeating-primary").length !== 0) {
                         repeatingForms.push(instrumentName);
                         if (isFirstRepeatingPanel) {
@@ -192,18 +191,16 @@ class ClientMetadata
                             if (panelHeading.hasClass('ref-tier-2')) {
                                 // look for the instance linked panel; only tag as tier-3 if present
                                 var badge = $(this).find(".badge-primary");
-                                var linkedToInstrument = badge.text().substr(22).trim();
+                                var linkedToInstrument =  badge.text().substr(22).trim();
                                 // console.log(instrumentName + ' linked to '+ linkedToInstrument);
                                 targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
                                 if (! targetDate) {
                                     targetDate = getInstrumentForField(getInstrumentForField(firstRepeatingPanel + '@parent') + '_@date_field');
                                 }
                                 $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
-                                // sigh. "linkedToInstrument in repeatingForms" should work but does not
-                                // perhaps due to trailing blanks? so do it the hard way
                                 linkedInstrumentFound  = false;
                                 for (let i = 0; i < repeatingForms.length; i++) {
-                                    linkedInstrumentFound = linkedInstrumentFound || repeatingForms[i].trim() === linkedToInstrument;
+                                    linkedInstrumentFound = linkedInstrumentFound || linkedToInstrument.includes( repeatingForms[i] );
                                 }
 
                                 if (linkedInstrumentFound) {

@@ -60,9 +60,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
-
+    
     }
-
+    
     public function prepareTempFile()
     {
         // if path changed or created then save it and new timestamp

@@ -157,15 +157,16 @@ class InstrumentMetadata
         if (! isset($this->resultArray)) {
             $this->init();
         }
-
+        $children = '';
+        $sep = '';
         foreach ($this->resultArray as $visiblekey => $visibleval) {
                 if (isset($this->resultArray[$visiblekey]['foreign_key_ref'])
                   && $this->resultArray[$visiblekey]['foreign_key_ref'] === $instrument) {
-                    $foundParent = $visiblekey;
-                    break;
+                    $children .= $sep . $visiblekey ;
+                    $sep = '|';
             }
         }
-        return  $foundParent;
+        return  $children;
     }
 
     /**
@@ -173,7 +174,7 @@ class InstrumentMetadata
      */
     private function init()
     {
-        global $module;
+//        global $module;
 
         // look up whether this is a longitudinal or standard project
         $this->isStandard = !$this->Proj->longitudinal ;
@@ -209,7 +210,7 @@ class InstrumentMetadata
             }
 
         }
-        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
+//        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
