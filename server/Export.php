@@ -556,7 +556,6 @@ class Export
 
         // record count feature - the end-user has clicked the "count" button in the filter panel
         if ($json->record_count === 'true') {
-
             $sql = "select count(distinct rdm.record) as row_count from redcap_data rdm where rdm.project_id = " . $project_id . " AND ";
             if (is_array($json->filters) || is_object($json->filters)) {
                 foreach ($json->filters as $filterIdx => $filter) {
@@ -569,8 +568,7 @@ class Export
                         $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
                                           " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
 
-                        $filterstr = str_replace($filter->instrument . '.' . $filter->field, $filter_val_sel, $filterstr);
-
+                        $filterstr = str_replace( $filter->field, $filter_val_sel, $filterstr);
                         $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name and " .
                             "     rd.project_id = " . $project_id . " and rd.field_name = '" . $filter->field . " ' and " .
                             $filterstr . ") " . " " . $filter->boolean . " ";
@@ -584,7 +582,7 @@ class Export
             if (substr($sql, -3) == "OR ")
                 $sql = substr($sql, 0, strlen($sql) - 3);
 
-//            $module->emDebug("SQL for COUNT : " . $sql);
+            $module->emDebug("SQL for COUNT : " . $sql);
 
             $result1 = db_query($sql);
 
