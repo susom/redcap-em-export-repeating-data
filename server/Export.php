@@ -755,7 +755,7 @@ class Export
         foreach ($headers as $field) {
             if ($this->isCheckbox($field)) {
                 $lovstr = $this->cbLov($field);
-                $lov = explode("\\n ", $lovstr);
+                $lov = explode("\\n", $lovstr);
                 for ($i = 1; $i < count($lov) + 1; ++$i) {
                     $newHeaders[] = $field . '___' . $i;
                 }
@@ -772,17 +772,22 @@ class Export
     {
         $newCells = [];
         $loSetValues = explode("\n", $cellValue);
+
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
-            $lov = explode("\\n ", $lovstr);
-            $j = 0;// this will keep track of where we are in the list of selected values
+            $lov = explode("\\n", $lovstr);
+            
             for ($i = 0; $i < count($lov); ++$i) {
-                // consider each possible value from the data dictionary in turn
-                if (strpos($lov[$i], $loSetValues[$j]) === FALSE) {
+                $found = false;
+                for ($j = 0; $j < count($lov); ++$j) {
+                    // consider each possible value from the data dictionary in turn
+                    if (strpos($lov[$i], $loSetValues[$j]) !== FALSE) {
+                        $newCells[] = $loSetValues[$j];
+                        $found = true;
+                    }
+                }
+                if (! $found) {
                     $newCells[] = '';
-                } else {
-                    $newCells[] = $loSetValues[$j];
-                    $j++;
                 }
             }
         } else {
