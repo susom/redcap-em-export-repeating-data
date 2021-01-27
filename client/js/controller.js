@@ -309,17 +309,21 @@ function getLabelOrCode(field, item_value, raw_or_label) {
     // used when assembling the model of the user-specified filters. If raw data, return the item as is
     // otherwise look up and return the associated label, so the filter value will match the selected data
     lov = getInstrumentForField(field + '@lov');
+    rval = item_value;
     if (raw_or_label === 'label' && lov !== "") {
 
-        parts1 = lov.split("\n " + item_value + ", ");
-        if (parts1.length === 1) {
-            // they selected the first item on the list
-            parts1 = lov.split(item_value + ", ");
-        }
-        parts2 = parts1[1].split("\n");
-        return parts2[0].trim();
+        parts1 = lov.split("\n");
+        parts1.forEach(function (part, index) {
+            // look for a match on part with item_value
+            if (part.indexOf(item_value + ", ") === 0) {
+                parts1 = part.split(item_value + ", ");
+                parts2 = parts1[1].split("\n");
+                rval = parts2[0].trim();
+            }
+        });
+
     }
-    return item_value;
+    return rval;
 }
 
 function getExportJson(is_preview, formdata, record_count) {
@@ -369,7 +373,7 @@ function getExportJson(is_preview, formdata, record_count) {
                 addFilter = true;
             }
         } else if (item.name === 'limiter_value[]' && item.value) {
-             // console.log('adding limiter_value '+item.name);
+            // console.log('adding limiter_value '+item.name);
             filter.validation = getInstrumentForField(filter.field + '@validation');
             addFilter = true;
             filter.param = getLabelOrCode(filter.field, item.value, struct.raw_or_label);
@@ -428,7 +432,7 @@ function getExportJson(is_preview, formdata, record_count) {
     struct.columns = columns;
     struct.filters = filters;
     struct.cardinality = Object.assign({}, cardinality);
-     // console.log(struct);
+      console.log(struct);
     return struct;
 
 }

@@ -548,7 +548,7 @@ class Export
 
         if ($json->raw_or_label == "label") {
             //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
-            $valSel = "coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2), '\\\\n',1), rd.value)";
+            $valSel = "coalesce(SUBSTRING_INDEX(trim(substring(element_enum, instr(element_enum, concat('\\\\n',concat(rd.value, ','))) + length(rd.value) + 3)), '\\\\n',1), rd.value)";
         } else {
             $valSel = "rd.value";
         }
@@ -1182,7 +1182,7 @@ class Export
             }
             $nItems++;
             $fieldList .= "group_concat(distinct case when rd.field_name = '$fieldName' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value
-                                   when rd.field_name = '$fieldName' then coalesce(SUBSTRING_INDEX(substring(element_enum, instr(element_enum, concat(rd.value, ',')) + length(rd.value) + 2),'\\\\n', 1), rd.value) 
+                                   when rd.field_name = '$fieldName' then coalesce(SUBSTRING_INDEX(trim(substring(element_enum, instr(element_enum, concat('\\\\n',concat(rd.value, ','))) + length(rd.value) + 3)),'\\\\n', 1), rd.value)
                               end
                               separator '\\n') `$fieldName`";
         }
