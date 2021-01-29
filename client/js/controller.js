@@ -184,7 +184,7 @@ function runQuery(preview, record_count) {
                     var count = response.count;
                     $("#count-display").html( ' matching records: ' + count);
                 } else {
-                    var csv_data = convertToCSV(response.data);
+                    var csv_data = convertToCSV(response.t1.data);
                     triggerDownload(csv_data, json.reportname + ".csv", 'text/csv;charset=utf-8;' )
                 }
             }
@@ -438,6 +438,7 @@ function getExportJson(is_preview, formdata, record_count) {
 }
 
 function convertToCSV(objArray) {
+    console.log(objArray);
     var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
     var str = '';
 
