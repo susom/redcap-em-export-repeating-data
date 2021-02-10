@@ -151,8 +151,8 @@ class Export
                     $json->forms[$instrument]->cardinality = $meta['cardinality'];
                     $joinType = $json_inp->cardinality->$instrument->join;
                     $json->forms[$instrument]->join_type = $joinType; // this gets overridden
-                    
-                    // instance select can be of either parent or child form depending on the order of how 
+
+                    // instance select can be of either parent or child form depending on the order of how
                     // user selects the forms
                     if ($joinType == 'repeating-instance-select') {
 
@@ -208,8 +208,8 @@ class Export
                         //  then it comes into this section
                         if ($this->getFormForField($json_inp->cardinality->$instrument->primary_date) != $instrument) {
                             // In this case, insert the parent right before the current instrument
-                            // I am not sure how to do this in an efficient way in php - i am just creating another 
-                            // object with newly inserted form. 
+                            // I am not sure how to do this in an efficient way in php - i am just creating another
+                            // object with newly inserted form.
                             $newjson = json_decode('{ "forms" : []}');
                             $newjson->raw_or_label = $json->raw_or_label ;
                             $newjson->record_count = $json->record_count ;
@@ -269,7 +269,7 @@ class Export
 
                             // If it doesn't then look to see if the parent exists in the form
                             if (!array_key_exists($parentPrimaryJoinInstrument, $json->forms)) {
-                                // If it doesn't, create a new form element for the parent and insert it 
+                                // If it doesn't, create a new form element for the parent and insert it
                                 // right before the current element.  Again, the following code is not looking good
                                 // but it works.  Find a better way to insert records just before the current element in php
                                 $newjson = json_decode('{ "forms" : []}');
@@ -360,8 +360,8 @@ class Export
         foreach ($json_inp->filters as $filter) {
             $meta = $this->instrumentMetadata->isRepeating($filter->instrument);
             $is_child = !empty($meta['foreign_key_ref']);
-            $has_children = !empty($meta['children']);            
-            
+            $has_children = !empty($meta['children']);
+
             // min and max date filters require a parent form
             // if the parent form is missing, it will be added at end of this function
             if ($filter->operator == 'MAX' || $filter->operator == 'MIN') {
@@ -537,9 +537,9 @@ class Export
     function runQuery($json)
     {
         global $module;
-        
+
         $module->emDebug("Input Json :" . json_encode($json)) ;
-        
+
         // look up the default row limit and set to 200 if not otherwise specified in the EM config
         $rowLimit = $module->getProjectSetting('preview-record-limit');
         if (!isset($rowLimit)) {
@@ -593,7 +593,7 @@ class Export
         }
 
         // if we reach this point, the user is asking for data rather than counts
-    
+
         // Keep the order of the fields as specified by the user
         $select_fields = array();  // Fields which will be returned to the caller
 
@@ -619,7 +619,7 @@ class Export
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
             $sql = $sql . " LIMIT " . $rowLimit;
         }
-    
+
         $module->emDebug($sql);
 
         if (strlen(trim($sql)) > 0) {
@@ -700,9 +700,9 @@ class Export
             $dt = "number";
 
         if ($filter->operator == "E")
-            $filterstr = ($dt == "string") ? ($col . " = '" . $val . "'") : ($col . " = " . $val);
+            $filterstr = ($dt == "string") ? ($col . " = '" . $val."'") : ($col . " = " . $val);
         elseif ($filter->operator == "NE")
-            $filterstr = ($dt == "string") ? ($col . " <> '" . $val . "'") : ($col . " <> " . $val);
+            $filterstr = ($dt == "string") ? ($col . " <> '" . $val."'") : ($col . " <> " . $val);
         elseif ($filter->operator == "CONTAINS")
             $filterstr = $col . " like '%" . $val . "%'";
         elseif ($filter->operator == "NOT_CONTAIN")
@@ -729,7 +729,7 @@ class Export
             $filterstr = $col . " not like '%" . $val . "%'";
         elseif ($filter->operator == "MAX" || $filter->operator == "MIN")
             // self join to pick up the max/min for the date in the instrument specified by the filter
-            $filterstr = $col . " = (select ".$filter->operator."(rdx.value) from redcap_data rdx, redcap_metadata rmx
+            $filterstr = $col . " = (select " . $filter->operator . "(rdx.value) from redcap_data rdx, redcap_metadata rmx
           where rdx.project_id  = rmx.project_id and rmx.field_name  = rdx.field_name and rdx.project_id  = "
                 .$this->Proj->project_id." and rdx.field_name = '".$filter->field."' and rdx.record=t.record_id)";
 
@@ -776,7 +776,7 @@ class Export
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
             $lov = explode("\\n", $lovstr);
-            
+
             for ($i = 0; $i < count($lov); ++$i) {
                 $found = false;
                 for ($j = 0; $j < count($lov); ++$j) {
@@ -988,7 +988,7 @@ class Export
         foreach ($children as $formName => $instances) {
             // start with the parent
             $spec = $json->forms->$formName;
-            $selectClause = "$formName.record_id, ".$formName."_instance, ";
+            $selectClause = "$formName.$recordId, ".$formName."_instance, ";
             $selectClause .= $this->getFields($formName, $spec->fieldsToDisplay);
             $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
             $inlineTable = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters);
@@ -1198,7 +1198,7 @@ class Export
     {
         //  build up the list of field names for the current instrument
         $fieldList = $this->getFieldList($fieldNames);
-        
+
 //        global $module;
 //
 //        $module->emDebug('getInlineTableSql $fieldList :' . print_r($fieldList, TRUE));
