@@ -104,10 +104,13 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 <div class="col-md-9 pt-3">
                     <span><div class="cardinal">Filter Rows - Drag and Drop from left menu</div>
                     <div class="container droptarget" >
-                            <div id="count-display" class="mr-1" style="float:right"> matching records: 0</div><button type="button" class="mr-1 mt-1 badge badge-light" style="float:right" onclick="runQuery(false, true)">count</button>
+                           <div class="col-12 mt-2"><label>Apply Filters to Data?</label> <input type="radio" id="aftd-yes" name="applyFiltersToData" value="true" checked>
+                          <label for="yes">Yes</label>
+                          <input type="radio" id="aftd-no" name="applyFiltersToData" value="false" >
+                          <label for="female">No</label><div id="count-display" class="mr-1" style="float:right"> matching records: 0</div><button type="button" class="mr-1 mt-1 badge badge-light" style="float:right" onclick="runQuery(false, true)">count</button>
                         <div class="spinner-border text-secondary mt-1 mr-1 mini-spin" role="status" id="count-running" style="display: none; float:right">
                             <span class="sr-only">Loading...</span>
-                        </div>
+                        </div></div>
                     </span>
                     <div id="row_filter" class="list-group filters-fields " style="min-height: 50px; width: 100%;">
                         <div class="grey cbox-panel" id="tip_exporting_all_rows"><span >Currently exporting all rows. </span><span id="tip_missing_col_1">You must specify at least one column below.</span></div>

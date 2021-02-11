@@ -210,7 +210,6 @@ class InstrumentMetadata
             }
 
         }
-//        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
 
         // now look in the data dictionary for action tags indicating foreign key relationships
         foreach ($this->dataDictionary as $key => $ddEntry) {
@@ -239,6 +238,9 @@ class InstrumentMetadata
                 $lookupTable[$ddEntry['field_name'] . "@lov"] = $ddEntry['element_enum'];
             }
         }
+        global $module;
+        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
+
         $this->resultArray = $lookupTable;
     }
 

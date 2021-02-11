@@ -71,7 +71,7 @@ class Export
     {
         try {
             $newConfig = $this->assembleSpecification($config);
-           // $this->runTests();
+       //     $this->runTests();
             $result = $this->runQuery(json_decode(json_encode($newConfig)));
             return $result;
         } catch (Exception $e) {
@@ -337,6 +337,7 @@ class Export
 
         $this->add_forms_from_filters($json_inp, $json);
         $json->filters = $json_inp->filters;
+        $json->applyFiltersToData = $json_inp->applyFiltersToData === 'true';
 //        $module->emDebug('final json ' . print_r($json, true));
         return $json;
     }
@@ -527,6 +528,41 @@ class Export
         }
 
     }
+    
+    // used when counting the number of patients (user clicked 'count' in filter panel)
+    function generateWhereClauseFromFilters($json, $project_id, $valSel, $selectClause) {
+        global $module;
+        $sql = $selectClause . " FROM redcap_data rdm where rdm.project_id = " . $project_id . " AND ";
+        if (is_array($json->filters) || is_object($json->filters)) {
+            foreach ($json->filters as $filterIdx => $filter) {
+                // for now ignore max and min in doing counts.  will need to think about how to do this in combo
+                // with other parameters
+                if ($filter->operator != 'MAX' && $filter->operator != 'MIN') {
+                
+                    $filterstr = $this->filter_string($filter);
+                
+                    $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
+                        " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
+                
+                    $filterstr = str_replace( $filter->field, $filter_val_sel, $filterstr);
+                    $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name and " .
+                        "     rd.project_id = " . $project_id . " and rd.field_name = '" . $filter->field . " ' and " .
+                        $filterstr . ") " . " " . $filter->boolean . " ";
+                }
+            }
+        }
+    
+        if (substr($sql, -4) == "AND ")
+            $sql = substr($sql, 0, strlen($sql) - 4);
+    
+        if (substr($sql, -3) == "OR ")
+            $sql = substr($sql, 0, strlen($sql) - 3);
+    
+        $module->emDebug("SQL for COUNT : " . $sql);
+    
+        return $sql;
+    }
+    
     /**
      * This is the function that takes the Json coming from the client and converts it into SQL,
      * executes the SQL, and returns the restuls to the client
@@ -556,33 +592,8 @@ class Export
 
         // record count feature - the end-user has clicked the "count" button in the filter panel
         if ($json->record_count === 'true') {
-            $sql = "select count(distinct rdm.record) as row_count from redcap_data rdm where rdm.project_id = " . $project_id . " AND ";
-            if (is_array($json->filters) || is_object($json->filters)) {
-                foreach ($json->filters as $filterIdx => $filter) {
-                    // for now ignore max and min in doing counts.  will need to think about how to do this in combo
-                    // with other parameters
-                    if ($filter->operator != 'MAX' && $filter->operator != 'MIN') {
-
-                        $filterstr = $this->filter_string($filter);
-
-                        $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-                                          " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
-
-                        $filterstr = str_replace( $filter->field, $filter_val_sel, $filterstr);
-                        $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name and " .
-                            "     rd.project_id = " . $project_id . " and rd.field_name = '" . $filter->field . " ' and " .
-                            $filterstr . ") " . " " . $filter->boolean . " ";
-                    }
-                }
-            }
-
-            if (substr($sql, -4) == "AND ")
-                $sql = substr($sql, 0, strlen($sql) - 4);
-
-            if (substr($sql, -3) == "OR ")
-                $sql = substr($sql, 0, strlen($sql) - 3);
-
-            $module->emDebug("SQL for COUNT : " . $sql);
+            $sql = "select count(distinct rdm.record) as row_count " ;
+            $sql = $this->generateWhereClauseFromFilters($json, $project_id, $valSel, $sql);
 
             $result1 = db_query($sql);
 
@@ -611,10 +622,20 @@ class Export
                 $select_fields[] = $field;
             }
         }
-
+    
+        define("BASIC", 0);
+        define("TEMP_TABLE_DEFN", 1);
+        define("TEMP_TABLE_USE", 2);
         // generate the SQL
-        $sql = $this->getSqlMultiPass($json, $this->Proj->project_id);
-
+        if ($json->applyFiltersToData) {
+            $sql = $this->getSqlMultiPass($json, $this->Proj->project_id, BASIC);
+        } else {
+            $sql1 = "CREATE TEMPORARY TABLE fred as " . $this->getSqlMultiPass($json, $this->Proj->project_id, TEMP_TABLE_DEFN); // create temporary table
+            db_query($sql1) or die ("Sql error : ".db_error());
+            $module->emDebug($sql1);
+            $sql = $this->getSqlMultiPass($json, $this->Proj->project_id, TEMP_TABLE_USE); // select w/ join on temporary table
+            
+        }
         // append a limit clause if they are asking for a preview rather than a data export
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
             $sql = $sql . " LIMIT " . $rowLimit;
@@ -625,7 +646,7 @@ class Export
         if (strlen(trim($sql)) > 0) {
             // actually execute the sql - this is where the magic happens!
             $rptdata = db_query($sql);
-
+            
             $result["status"] = 1; // when status = 0 the client will display the error message
             if (strlen(db_error()) > 0) {
                 $dberr = db_error();
@@ -634,7 +655,10 @@ class Export
                 $result["status"] = 0;
                 $result["message"] = $dberr;
             } else {
-                $result["t1"]  = $this->package($json->preview, $select_fields, $rptdata);
+                $result["t1"]  = $this->package($json->preview, $select_fields, $rptdata, $json->raw_or_label == 'label');
+            }
+            if (! $json->applyFiltersToData) {
+                db_query("DROP TEMPORARY TABLE fred");
             }
         } else {
             $result["status"] = 0;
@@ -645,17 +669,20 @@ class Export
     }
 
     // transform the results returned by the SQL query by adding separate columns for each checkbox value
-    function package($preview, $select_fields, $rptdata)
+    // and by replacing codes with labels if so requested by the end-user
+    function package($preview, $select_fields, $rptdata, $showLabel)
     {
         $data = [];
+        $hdrs = $this->pivotCbHdr($select_fields);
         if ("false" == $preview) {
             // when exporting .csv, the return csv is in $data
-            $data[] = $this->pivotCbHdr($select_fields);  // $headers;
+            $data[] = $hdrs;  // $headers;
         }
         while ($row = db_fetch_assoc($rptdata)) {
             $cells = [];
             for ($k = 0; $k < count($select_fields); $k++) {
-                $cells = array_merge($cells, $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]]));
+              
+                $cells = array_merge($cells, $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]], $showLabel, $hdrs[$k])) ; //, $data[$k]
             }
             $data[] = $cells;
         }
@@ -768,10 +795,14 @@ class Export
     }
 
     // called by package(); adds column values to each row of data for checkbox fields
-    private function pivotCbCell($field, $cellValue)
+    // and converts values to labels
+    private function pivotCbCell($field, $cellValue, $showLabel, $fieldName)
     {
         $newCells = [];
         $loSetValues = explode("\n", $cellValue);
+        if ($showLabel) {
+            $lovMeta = $this->instrumentMetadata->getValue($field . '@lov');
+        }
 
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
@@ -782,7 +813,7 @@ class Export
                 for ($j = 0; $j < count($lov); ++$j) {
                     // consider each possible value from the data dictionary in turn
                     if (strpos($lov[$i], $loSetValues[$j]) !== FALSE) {
-                        $newCells[] = $loSetValues[$j];
+                        $newCells[] = $this->getValueOrLabel($loSetValues[$j], $lovMeta, $showLabel);
                         $found = true;
                     }
                 }
@@ -791,10 +822,31 @@ class Export
                 }
             }
         } else {
-            $newCells[] = $cellValue;
+            $newCells[] = $this->getValueOrLabel($cellValue, $lovMeta, $showLabel);
         }
 
         return $newCells;
+    }
+    
+    function startsWith ($string, $startString)
+    {
+        $len = strlen($startString);
+        return (substr($string, 0, $len) === $startString);
+    }
+    
+    public function getValueOrLabel($cellValue, $lov, $showLabel) {
+        if ($showLabel) {
+            $arLov = explode("\\n", $lov);
+            foreach($arLov as $value) {
+                $value = trim($value);
+                if ($this->startsWith($value, $cellValue)) {
+                    return trim(substr($value, strlen($cellValue) + 1));
+                }
+            }
+            return $cellValue;
+        }
+        return $cellValue;
+        
     }
 
 
@@ -913,10 +965,14 @@ class Export
 
     // processing loop for invoking filter_string(), the function that does all the actual work
     // results are aggregated and returned as a single SQL fragment
-    function handleFilters($filters, $formName, $prefix)
+    function handleFilters($filters, $formName, $prefix, $applyFiltersToData)
     {
-
+       
+        if (! $applyFiltersToData) {
+            return "";
+        }
         $filtersql = " $prefix ";
+        
         if (is_array($filters) || is_object($filters)) {
             foreach ($filters as $filter) {
 
@@ -940,7 +996,7 @@ class Export
 
     // this coalesce pattern is used throughout; it replaces NULL with empty string ,
     // resulting in much nicer looking reports
-    function getFields($instrument, $fields)
+    function getFields($instrument, $fields, $mode)
     {
         $fieldstr = "";
         $cnt = 0;
@@ -951,6 +1007,9 @@ class Export
                 }
                 $fieldstr .= "COALESCE ($instrument.$field,'') `$field`";
                 $cnt++;
+                if ($mode == TEMP_TABLE_DEFN) {
+                    break; // only need record_ids in the temp table
+                }
             }
         }
 
@@ -961,7 +1020,7 @@ class Export
     // we use multiple passes in order to separate out changes in table ordering that impact the SQL from
     // table ordering that should be ignored. For example, all fields in singleton (non-repeating)
     // instruments should be inner joined to the primary repeating form.
-    function getSqlMultiPass($json, $pid)
+    function getSqlMultiPass($json, $pid, $mode)
     {
         global $module;
         $recordId =  REDCap::getRecordIdField();
@@ -989,17 +1048,17 @@ class Export
             // start with the parent
             $spec = $json->forms->$formName;
             $selectClause = "$formName.$recordId, ".$formName."_instance, ";
-            $selectClause .= $this->getFields($formName, $spec->fieldsToDisplay);
+            $selectClause .= $this->getFields($formName, $spec->fieldsToDisplay, $mode);
             $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
-            $inlineTable = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters);
+            $inlineTable = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
             foreach ($instances as $childForm) {
                 $spec = $json->forms->$childForm;
                 if (count($spec->fieldsToDisplay) > 0) {
-                    $selectClause .= ", /*1147 */" . $this->getFields($childForm, $spec->fieldsToDisplay);
+                    $selectClause .= ", /*1147 */" . $this->getFields($childForm, $spec->fieldsToDisplay, $mode);
                 }
                 $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
                 $inlineTable .= $this->getJoin($childForm, $filters, $json);
-                $inlineTable .= $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters);
+                $inlineTable .= $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
                 $jk = ($spec->join_key_field == 'instance' ? $spec->form_name . "." . $spec->form_name . "_instance" :  $spec->join_key_field);
                 $fk = $spec->foreign_key_ref;
                 $inlineTable .= " ON $formName.$recordId=$spec->form_name.$recordId AND /*1*/ $jk = " . $fk . "_instance";
@@ -1010,7 +1069,7 @@ class Export
         }
 //        $module->emDebug('$inlineTable :' . print_r($tablePivots, TRUE));
         $priorTable = '';
-        $selectClause = $this->getSelectClause($json); // this counts as pass #2
+        $selectClause = $this->getSelectClause($json, $mode); // this counts as pass #2
         $cntTableJoins = 0;
         // the third pass picks up all singleton forms
         foreach ($json->forms as $formName => $spec) {
@@ -1018,7 +1077,7 @@ class Export
                 continue;
             }
 
-            $finalSql .= $this->getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable);
+            $finalSql .= $this->getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable, $mode);
             $cntTableJoins ++;
             $priorTable = $formName;
 
@@ -1036,16 +1095,20 @@ class Export
                 continue;
             }
 
-            $finalSql .= $this->getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable);
+            $finalSql .= $this->getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable, $mode);
             // date_proximity has the join hard-coded; see getDateProximityTableJoin()
             $cntTableJoins ++;
             $priorTable = $formName;
         }
-        $finalSql = "select distinct " . $selectClause . " FROM " . $finalSql;
+        $finalSql =  $selectClause . $finalSql ;
+        if ($mode == TEMP_TABLE_USE) {
+            $finalSql = $finalSql . " INNER JOIN fred on fred.$recordId = " . $priorTable . ".$recordId";
+            
+        }
         return $finalSql;
     }
 
-    function getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable)
+    function getInterimSql( $json, $pid, $cntTableJoins, $formName, $spec, $filters, $tablePivots, $priorTable, $mode)
     {
         global $module;
         $recordId = REDCap::getRecordIdField();
@@ -1072,13 +1135,13 @@ class Export
                 // when $tablePivots $innerTableSql used in this context
                 $innerTableSql = $this->str_lreplace($formName , '', $innerTableSql);
             }
-            $pieces = $this->getDateProximityTableJoin($spec->form_name, $innerTableSql, $spec, $pid, $filters);
+            $pieces = $this->getDateProximityTableJoin($spec->form_name, $innerTableSql, $spec, $pid, $filters, $mode);
             $finalSql .= $pieces['tableSql'];
             $joinClause .= $pieces['joinClause'];
         } else {
 //            $module->emDebug('$innerTableSql :' . print_r($innerTableSql, TRUE));
             if (strlen($innerTableSql) == 0) {
-                $innerTableSql = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters);
+                $innerTableSql = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
             }
             $finalSql .= $innerTableSql;
         }
@@ -1096,7 +1159,7 @@ class Export
     // generate the top level select clause for all specified field and instruments
     // this is required because the inline tables all have additional fields used as join fields
     // that need to be filtered out of the report returned to the end-user
-    function getSelectClause($json)
+    function getSelectClause($json, $mode)
     {
         $selectClause = "";
         $cntSelectClauses = 0;
@@ -1116,15 +1179,18 @@ class Export
             }
 
             if ($spec->join_type == 'instance') {
-                $selectClause .= $this->getFields($spec->foreign_key_ref, $fieldsToDisplay);
+                $selectClause .= $this->getFields($spec->foreign_key_ref, $fieldsToDisplay, $mode);
                 // now that we've picked up their fields to display we're done,
                 // as the from clause has already been incorporated into the SQL cached in the earlier pass
                 continue;
             } else {
-                $selectClause .= $this->getFields($formName, $fieldsToDisplay);
+                $selectClause .= $this->getFields($formName, $fieldsToDisplay, $mode);
+            }
+            if ($mode == TEMP_TABLE_DEFN) { // just looking for record_id in the temp table
+                break;
             }
         }
-        return $selectClause;
+        return "select distinct " . $selectClause . " FROM " ;
     }
 
     function str_lreplace($search, $replace, $subject)
@@ -1186,15 +1252,18 @@ class Export
                 $fieldList .= ", /*1306*/\n";
             }
             $nItems++;
-            $fieldList .= "group_concat(distinct case when rd.field_name = '$fieldName' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value
-                                   when rd.field_name = '$fieldName' then coalesce(SUBSTRING_INDEX(trim(substring(element_enum, instr(element_enum, concat('\\\\n',concat(rd.value, ','))) + length(rd.value) + 3)),'\\\\n', 1), rd.value)
+//            $fieldList .= "group_concat(distinct case when rd.field_name = '$fieldName' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value
+//                                   when rd.field_name = '$fieldName' then coalesce(SUBSTRING_INDEX(trim(substring(element_enum, instr(element_enum, concat('\\\\n',concat(rd.value, ','))) + length(rd.value) + 3)),'\\\\n', 1), rd.value)
+//                              end
+//                              separator '\\n') `$fieldName`";
+            $fieldList .= "group_concat(distinct case when rd.field_name = '$fieldName'  then rd.value
                               end
                               separator '\\n') `$fieldName`";
         }
         return $fieldList;
     }
 
-    function getInlineTableSql($fieldNames, $formName, $pid, $spec, $filters)
+    function getInlineTableSql($fieldNames, $formName, $pid, $spec, $filters, $mode)
     {
         //  build up the list of field names for the current instrument
         $fieldList = $this->getFieldList($fieldNames);
@@ -1211,7 +1280,7 @@ class Export
             $grouper = " GROUP BY rd.record, ".$formName."_instance";
         }
 
-        return $this->getTableJoinClause( REDCap::getRecordIdField(), $fieldList, $pid, $formName, $filters, $grouper, $instanceSelect);
+        return $this->getTableJoinClause( REDCap::getRecordIdField(), $fieldList, $pid, $formName, $filters, $grouper, $instanceSelect, $mode);
     }
 
     // use case: 1. rhcath 2. visit 3. workingdx
@@ -1231,10 +1300,10 @@ class Export
                                 GROUP BY rd.record, rd.instance";
     }
 
-    function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters)
+    function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters, $mode)
     {
         $recordId =  REDCap::getRecordIdField();
-        $filter = $this->handleFilters($filters, $formName, 'AND');
+        $filter = $this->handleFilters($filters, $formName, 'AND', $mode != TEMP_TABLE_USE);
         $tableSql =  "(Select distinct ".$formName."_int.*, t.".$spec->foreign_key_ref."_instance
                           From ( $innerTableSql ) ".$formName."_int,
                                (select rd.record as $recordId,
@@ -1268,10 +1337,10 @@ class Export
         return $pieces;
     }
 
-    function getTableJoinClause($recordId, $fieldList, $pid, $formName, $filters,  $grouper,  $instanceSelect)
+    function getTableJoinClause($recordId, $fieldList, $pid, $formName, $filters,  $grouper,  $instanceSelect, $mode)
     {
         $comma = (strlen($instanceSelect) > 0 || strlen($fieldList) > 0 ? ',' : '');
-        $finalSql= "(select * from (select /*line1382*/ rd.record  $recordId $comma
+        $finalSql= "\n(select * from (select /*line1382*/ rd.record  $recordId $comma
         $instanceSelect
         $fieldList
       FROM redcap_data rd,
@@ -1280,7 +1349,7 @@ class Export
         and rm.field_name = rd.field_name
         and rd.project_id = $pid
         and rm.form_name = '$formName'
-      $grouper) t   " . $this->handleFilters($filters, $formName, 'WHERE') . ") $formName";
+      $grouper) t   " . $this->handleFilters($filters, $formName, 'WHERE', $mode != TEMP_TABLE_USE) . ") $formName";
 
         return $finalSql  ;
     }

@@ -305,29 +305,17 @@ function saveExportJson() {
     triggerDownload(JSON.stringify(json), json.reportname + ".json", 'text/json;charset=utf-8;' )
 }
 
-function getLabelOrCode(field, item_value, raw_or_label) {
+function getCode(field, item_value) {
     // used when assembling the model of the user-specified filters. If raw data, return the item as is
     // otherwise look up and return the associated label, so the filter value will match the selected data
     lov = getInstrumentForField(field + '@lov');
     rval = item_value;
-    if (raw_or_label === 'label' && lov !== "") {
-
-        parts1 = lov.split("\n");
-        parts1.forEach(function (part, index) {
-            // look for a match on part with item_value
-            if (part.indexOf(item_value + ", ") === 0) {
-                parts1 = part.split(item_value + ", ");
-                parts2 = parts1[1].split("\n");
-                rval = parts2[0].trim();
-            }
-        });
-
-    }
     return rval;
 }
 
 function getExportJson(is_preview, formdata, record_count) {
     var struct = {};
+    struct.applyFiltersToData = $("input:radio[name ='applyFiltersToData']:checked").val();
     struct.record_count = record_count;
     struct.reportname = 'unnamed_report';
     var columns =[];
@@ -376,7 +364,7 @@ function getExportJson(is_preview, formdata, record_count) {
             // console.log('adding limiter_value '+item.name);
             filter.validation = getInstrumentForField(filter.field + '@validation');
             addFilter = true;
-            filter.param = getLabelOrCode(filter.field, item.value, struct.raw_or_label);
+            filter.param = getCode(filter.field, item.value, struct.raw_or_label);
         } else if (item.name === 'limiter_connector[]' && addFilter) {
             filter.boolean = item.value;
             filter.instrument = getInstrumentForField(filter.field);
