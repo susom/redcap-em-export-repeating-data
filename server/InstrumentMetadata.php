@@ -238,9 +238,6 @@ class InstrumentMetadata
                 $lookupTable[$ddEntry['field_name'] . "@lov"] = $ddEntry['element_enum'];
             }
         }
-        global $module;
-        $module->emDebug('LookupTable stuff ' . print_r($lookupTable,TRUE)) ;
-
         $this->resultArray = $lookupTable;
     }
 
