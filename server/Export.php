@@ -758,7 +758,7 @@ class Export
             // self join to pick up the max/min for the date in the instrument specified by the filter
             $filterstr = $col . " = (select " . $filter->operator . "(rdx.value) from redcap_data rdx, redcap_metadata rmx
           where rdx.project_id  = rmx.project_id and rmx.field_name  = rdx.field_name and rdx.project_id  = "
-                .$this->Proj->project_id." and rdx.field_name = '".$filter->field."' and rdx.record=t.record_id)";
+                .$this->Proj->project_id." and rdx.field_name = '".$filter->field."' and rdx.record=t.".REDCap::getRecordIdField().")";
 
         return $filterstr;
     }
