@@ -197,14 +197,20 @@ function runQuery(preview, record_count) {
     });
 }
 
+function loadSavedReport() {
+    if ($('#saved-reports').find(":selected").val() != '') {
+        applyModel(JSON.parse($('#saved-reports').find(":selected").val()));
+    }
+}
+
 function promptForUpload() {
-    $( "#dialog" ).dialog({
+    $("#dialog").dialog({
         resizable: false,
         height: "auto",
         width: 430,
         modal: true
     });
-    $( "#dialog" ).show();
+    $("#dialog").show();
 }
 
 function configurationError(formdata) {
@@ -302,7 +308,35 @@ function toggleIcon(id) {
 function saveExportJson() {
     var formdata = $("#export-repeating").serializeArray();
     var json = getExportJson(false, formdata, false);
-    triggerDownload(JSON.stringify(json), json.reportname + ".json", 'text/json;charset=utf-8;' )
+
+    $.ajax({
+        url: $("#save-report").val(),
+        timeout: 60000000,
+        type: 'GET',
+        data: {'action': 'save', 'report_name': json.reportname, 'report_content': json},
+        dataType: 'json',
+        success: function (response) {
+            if (response.status == 'success') {
+                var $el = $("#saved-reports");
+                $el.empty(); // remove old options
+                $el.append($("<option></option>")
+                    .attr("value", '').text('Select a Report'));
+                $.each(JSON.parse(response.reports), function (key, value) {
+                    $el.append($("<option></option>")
+                        .attr("value", JSON.stringify(value)).text(key));
+                });
+            }
+
+        },
+        error: function (request, error) {
+            $("#ui-loading").hide();
+            showError("STARTUP Server Error: " + JSON.stringify(error));
+            // console.log(request);
+            console.log(error);
+        }
+    });
+
+    //triggerDownload(JSON.stringify(json), json.reportname + ".json", 'text/json;charset=utf-8;' )
 }
 
 function getCode(field, item_value) {

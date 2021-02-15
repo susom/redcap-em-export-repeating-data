@@ -85,6 +85,12 @@
       "name": "<b>Preview Record Limit</b><br><i>(optional)</i> Set the record limit for preview queries. Default is 200 rows",
       "required": false,
       "type": "text"
+    },
+    {
+      "key": "saved-reports",
+      "name": "<b>Json Objects of saved reports</b><br><i></i>",
+      "required": false,
+      "type": "textarea"
     }
   ],
 

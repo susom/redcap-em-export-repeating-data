@@ -39,43 +39,68 @@ $port = (PORT === '') ? '' : ':'.PORT;
             <!-- set up for calling REDcap API via Ajax to display controls for user-specified field filters (upper right) -->
             <input type="hidden" name="base-url" id="base-url"
                    value="<?php echo $_SERVER['REQUEST_SCHEME'] . '://' . SERVER_NAME . $port . APP_PATH_WEBROOT . 'DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
-            <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token" value="<?php echo System::getCsrfToken() ?>">
+            <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token"
+                   value="<?php echo System::getCsrfToken() ?>">
             <input type="hidden" name="report-submit" id="report-submit"
                    value="<?php echo $module->getUrl("server/getDataFromServer.php") ?>">
             <input type="hidden" name="clientmeta-submit" id="clientmeta-submit"
                    value="<?php echo $module->getUrl("server/getClientMetadata.php") ?>">
             <input type="hidden" name="filter-submit" id="filter-submit"
                    value="<?php echo $module->getUrl("server/getFilterDefns.php") ?>">
-
+            <input type="hidden" name="save-report" id="save-report"
+                   value="<?php echo $module->getUrl("server/manageReports.php") ?>">
             <!-- imitate other REDCap page headers -->
-            <div class="row" >
+            <div class="row">
                 <div class="projhdr">
                     <i class="fas fa-download"></i>
                     Review / Export Data
                 </div>
             </div>
 
-            <div  id="dialog" title="Restore Settings" style="display:none">
+            <div id="dialog" title="Restore Settings" style="display:none">
                 <table id="holder">
                     <tr>
                         <td>Drop files here</td>
                     </tr>
                     <tr>
-                        <td><ul id="fileList"></ul></td>
+                        <td>
+                            <ul id="fileList"></ul>
+                        </td>
                     </tr>
                 </table>
             </div>
             <!-- prompt for a report name used to save and restore report settings -->
             <div class="row" style="padding-right: 15px;">
 
-                <div class="col-md-8 col-sm-6  cardinal emphatic header nowrap text-left " style="min-width:200px">
-                    <span>Report Name:   <input type="text" id="report_name"  name="report_name" size="40"/><select class="ml-3 mb-1 jqbuttonmed  ui-corner-all " name="raw_or_label" id="raw_or_label"><option value="label">Labels</option><option value="raw">Raw Data</option></select></span>
+                <div class="col-md-7 col-sm-5  cardinal emphatic header nowrap text-left " style="min-width:200px">
+                    <span>Report Name:   <input type="text" id="report_name" name="report_name" size="40"/><select
+                                class="ml-3 mb-1 jqbuttonmed  ui-corner-all " name="raw_or_label" id="raw_or_label"><option
+                                    value="label">Labels</option><option value="raw">Raw Data</option></select></span>
                 </div>
                 <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-left">
-                    <button type="button"  onclick="saveExportJson()" id="save_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-download"></i> Save Settings</button>
+                    <button type="button" onclick="saveExportJson()" id="save_export_json"
+                            class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"><i
+                                class="fas fa-file-download"></i> Save Settings
+                    </button>
                 </div>
-                <div class="col-md-2  col-sm-3 cardinal emphatic header nowrap text-left">
-                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>
+                <div class="col-md-3  col-sm-3 cardinal emphatic header nowrap text-left">
+                    <!--                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>-->
+                    <span>
+                            Saved Reports:
+                            <select id="saved-reports" onchange="loadSavedReport()">
+                            <option value="">Select a Report</option>
+                            <?php
+                            ;
+                            $aaaaa = $module->getProjectSetting('saved-reports');
+                            $reports = json_decode(str_replace("\\n", "", $module->getProjectSetting('saved-reports')), true);
+                            foreach ($reports as $name => $report) {
+                                ?>
+                                <option value='<?php echo json_encode($report) ?>'><?php echo $name ?></option>
+                                <?php
+                            }
+                            ?>
+                        </select>
+                        </span>
                 </div>
             </div>
 
