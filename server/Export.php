@@ -581,13 +581,9 @@ class Export
         if (!isset($rowLimit)) {
             $rowLimit = 200;
         }
-
-        if ($json->raw_or_label == "label") {
-            //  added length(rd.value) + 2 to remove the "n, " in "n, label" format
-            $valSel = "coalesce(SUBSTRING_INDEX(trim(substring(element_enum, instr(element_enum, concat('\\\\n',concat(rd.value, ','))) + length(rd.value) + 3)), '\\\\n',1), rd.value)";
-        } else {
-            $valSel = "rd.value";
-        }
+       
+        $valSel = "rd.value";
+        
         $project_id = $this->Proj->project_id;
 
         // record count feature - the end-user has clicked the "count" button in the filter panel
