@@ -90,8 +90,6 @@ $port = (PORT === '') ? '' : ':'.PORT;
                             <select id="saved-reports" onchange="loadSavedReport()">
                             <option value="">Select a Report</option>
                             <?php
-                            ;
-                            $aaaaa = $module->getProjectSetting('saved-reports');
                             $reports = json_decode(str_replace("\\n", "", $module->getProjectSetting('saved-reports')), true);
                             foreach ($reports as $name => $report) {
                                 ?>

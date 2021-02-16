@@ -405,4 +405,23 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         echo $data;
         exit();
     }
+
+
+    public function manageReports()
+    {
+        $action = filter_var($_GET['action'], FILTER_SANITIZE_STRING);
+        $reports = json_decode($this->getProjectSetting('saved-reports'), true);
+
+        if ($action == 'save') {
+            $name = filter_var($_GET['report_name'], FILTER_SANITIZE_STRING);
+            $content = $_GET['report_content'];
+            $reports[$name] = $content;
+            $this->setProjectSetting('saved-reports', json_encode($reports));
+        } elseif ($action == 'delete') {
+            $name = filter_var($_GET['report_name'], FILTER_SANITIZE_STRING);
+            unset($reports[$name]);
+            $this->setProjectSetting('saved-reports', json_encode($reports));
+        }
+        echo json_encode(array('status' => 'success', 'reports' => json_encode($reports)));
+    }
 }

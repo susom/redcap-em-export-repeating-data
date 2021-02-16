@@ -46,6 +46,12 @@
         "icon": "report",
         "url": "display.php",
         "show-header-and-footer": true
+      },
+      {
+        "name": "Manage Saved Reports",
+        "icon": "report",
+        "url": "manage.php",
+        "show-header-and-footer": true
       }
     ]
   },

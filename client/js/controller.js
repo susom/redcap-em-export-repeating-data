@@ -89,6 +89,30 @@ $(function () {
         }
     });
 
+
+    $(document).on('click', '.delete-saved-report', function () {
+        if (confirm('Are you sure you want to delete the saved settings for report ' + $(this).data('report-name') + ' ?')) {
+            $.ajax({
+                url: $("#save-report").val(),
+                timeout: 60000000,
+                type: 'GET',
+                data: {'action': 'delete', 'report_name': $(this).data('report-name')},
+                dataType: 'json',
+                success: function (response) {
+                    if (response.status == 'success') {
+                        loadSavedReportSettings()
+                    }
+
+                },
+                error: function (request, error) {
+                    $("#ui-loading").hide();
+                    showError("STARTUP Server Error: " + JSON.stringify(error));
+                    // console.log(request);
+                    console.log(error);
+                }
+            });
+        }
+    })
     // last but not least, trigger a round trip to the server asking for the record count
     runQuery(false, true);
 });
@@ -507,4 +531,28 @@ function triggerDownload(data, filename, filetype) {
     }
 }
 
+function loadSavedReportSettings() {
+    $.ajax({
+        url: $("#save-report").val(),
+        timeout: 60000000,
+        type: 'GET',
+        data: {'action': 'load'},
+        dataType: 'json',
+        success: function (response) {
+            if (response.status == 'success') {
+                var $el = $("#saved-reports-tbody");
+                $el.empty(); // remove old options
+                $.each(JSON.parse(response.reports), function (key, value) {
+                    $el.append($("<tr></tr>").html("<td>" + key + "</td><td><a href='#' class='delete-saved-report' data-report-name='" + key + "'>Delete</a></td>"));
+                });
+            }
 
+        },
+        error: function (request, error) {
+            $("#ui-loading").hide();
+            showError("STARTUP Server Error: " + JSON.stringify(error));
+            // console.log(request);
+            console.log(error);
+        }
+    });
+}
