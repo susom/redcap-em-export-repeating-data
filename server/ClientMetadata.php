@@ -29,7 +29,7 @@ class ClientMetadata
         // pick out the value from this action tag
         $components = explode('=', $annotation );
         // $components[0] is the action tag, and $components[1] is the value we want
-        return trim($components[1]);
+        return trim($components[1]," \n\r\t\v\0'\"");
     }
     function getClientMetadata() {
         global $module;
@@ -366,7 +366,7 @@ class ClientMetadata
                             $( panelSelector  ).show();
                             tagRepeatables();
 
-                            // SRINI - SDM-135 - following is addded to avoid sortable issues 
+                            // SRINI - SDM-135 - following is addded to avoid sortable issues
                             // when closing and opening the div
                             $( "#column_spec" ).sortable( "refreshPositions" );
 
@@ -392,7 +392,7 @@ class ClientMetadata
                     $("#lower-bound-" + instrumentName).val("");
                     tagRepeatables();
 
-                    // SRINI - SDM-135 - following is addded to avoid sortable issues 
+                    // SRINI - SDM-135 - following is addded to avoid sortable issues
                     // when closing and opening the div
                     $( "#column_spec" ).sortable( "refreshPositions" );
 

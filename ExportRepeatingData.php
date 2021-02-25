@@ -1,5 +1,6 @@
 <?php
 namespace Stanford\ExportRepeatingData;
+use REDCap;
 
 require_once "emLoggerTrait.php";
 ini_set('max_execution_time', 0);
@@ -35,6 +36,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     private $pathPrefix;
 
+    private $userRights;
+
     /**
      *  constructor.
      */
@@ -48,7 +51,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-                $this->setDataDictionary($this->project->metadata);
+                $this->userRights = REDCap::getUserRights(USERID)[USERID];
+                $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
+                $this->setDataDictionary($dataDictionary);
                 $referer  = $_SERVER['HTTP_REFERER'];
                 $indexOf4thslash = $this->strposX($referer, "/", 4);
                 $this->pathPrefix = substr($referer, 0, $indexOf4thslash);
@@ -56,13 +61,22 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
                 $this->setExport(new Export($this->getProject(), $this->instrumentMetadata, $this->getProjectSetting("temp-file-days-to-expire") ? $this->getProjectSetting("temp-file-days-to-expire") : DEFAULT_NUMBER_OF_CACHE_DAYS, $this->getProjectSetting("temp-file-config")));
                 $this->clientMetadata = new ClientMetadata();
             }
-
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
-    
     }
-    
+
+    private function applyUserViewingRights($dataDictionary) {
+        if (in_array('0',$this->userRights['forms'])) {
+            foreach ($dataDictionary as $field_name => $field_info) {
+                if (!$this->userRights['forms'][$field_info['form_name']]) {
+                    unset($dataDictionary[$field_name]);
+                }
+            }
+        }
+        return $dataDictionary;
+    }
+
     public function prepareTempFile()
     {
         // if path changed or created then save it and new timestamp
@@ -111,6 +125,13 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
             $result = $link;
         }
         return $result;
+    }
+
+    /**
+     * @return array
+     */
+    public function getUserRights() {
+        return $this->userRights;
     }
 
     /**

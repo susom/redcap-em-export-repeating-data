@@ -30,14 +30,42 @@
     };
     /**
      * BsTreeview Plugin constructor.
-     * @param {*} element 
-     * @param {*} options 
+     * @param {*} element
+     * @param {*} options
      */
     function bstreeView(element, options) {
         this.element = element;
         this.itemIdPrefix = element.id + "-item-";
         this.settings = $.extend({}, defaults, options);
         this.init();
+
+        /**
+         * Search on bstreeview
+         */
+        $('#treeSearch').on('change keyup', function() {
+            let searchVal = $(this).val();
+
+            $.each($('.bstreeview > .list-group-item'), function () {
+                var list = $(this).next('.list-group');
+                let foundChild = false;
+                $.each(list.children(), function searchNodes(index, listItem) {
+                    if ($(this).text().indexOf(searchVal) != -1) {
+                        foundChild = true;
+                        $(this).toggleClass('d-none', false);
+                    } else {
+                        $(this).toggleClass('d-none', true);
+                    }
+                });
+                if (foundChild && !list.hasClass('show')) {
+                    list.collapse('show');
+                } else if (!foundChild && list.hasClass('show')) {
+                    list.collapse('hide');
+                }
+                $('.state-icon', $(this)).toggleClass('fa-angle-right', !foundChild);
+                $('.state-icon', $(this)).toggleClass('fa-angle-down', foundChild);
+            });
+        });
+
     }
     /**
      * Avoid plugin conflict.
@@ -70,7 +98,7 @@
         },
         /**
          * Initialize treeview Data.
-         * @param {*} node 
+         * @param {*} node
          */
         initData: function (node) {
             if (!node.nodes) return;
@@ -89,9 +117,9 @@
         },
         /**
          * Build treeview.
-         * @param {*} parentElement 
-         * @param {*} nodes 
-         * @param {*} depth 
+         * @param {*} parentElement
+         * @param {*} nodes
+         * @param {*} depth
          */
         build: function (parentElement, nodes, depth) {
             var _this = this;

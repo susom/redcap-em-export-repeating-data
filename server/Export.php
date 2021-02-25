@@ -73,12 +73,75 @@ class Export
             $newConfig = $this->assembleSpecification($config);
        //     $this->runTests();
             $result = $this->runQuery(json_decode(json_encode($newConfig)));
+            if ($newConfig->preview === 'false') {
+                // should export rights also be applied to preview?  Not sure.
+                $result = $this->applyUserExportRights($result);
+            }
             return $result;
         } catch (Exception $e) {
             $result["status"] = 0 ;
             $result["message"] = $e->getMessage() ;
             return $result ;
         }
+    }
+
+    function applyUserExportRights($result) {
+        global $module;
+        //this doesn't work $user=$module->getUser();
+        //$module->emDebug("User : " .print_r($module->framework->getUser(USERID), true));
+
+        $rights=$module->getUserRights();
+        //$module->emDebug("Rights :" . print_r($rights, TRUE));
+        //$module->emDebug("data_export_tool=".$rights['data_export_tool']);
+        if ($rights['data_export_tool'] === '1') {
+            // phi access
+            return $result;
+        } else if ($rights['data_export_tool'] === '0') {
+            //no access
+            $result['status']=0;
+            $result["message"] = 'User does not have data export access';
+            return $result;
+        } else if ($rights['data_export_tool'] === '2'
+            ||$rights['data_export_tool'] === '3') {
+            // 2 == no text, dates or phi
+            // 3 == no phi
+            $headers=$result['t1']['headers'];
+            $data = $result['t1']['data'];
+            $dd = $module->getDataDictionary();
+            //$module->emDebug("data :" . print_r($data, TRUE));
+
+            $phi_cols=[];
+            foreach ($headers as $index=>$header) {
+                if (array_key_exists($header, $dd)) {
+                    // leave record_id field
+                    if ($rights['data_export_tool'] === '2' &&
+                        REDCap::getRecordIdField() !== $header &&
+                        strpos($dd[$header]['element_type'],'text')!==false) {
+                        $phi_cols[$index]=$header;
+                    } else if ($dd[$header]['field_phi']==='1') {
+                        $phi_cols[$index]=$header;
+                    }
+                }
+            }
+            //$module->emDebug("phi_cols[]=".print_r($phi_cols, true));
+
+            if (count($phi_cols)) {
+                $filtered_result['status'] = $result['status'];
+                $filtered_result['t1']['headers'] = array_diff_key($headers, $phi_cols);
+                $filtered_result['t1']['headers'] = array_values($filtered_result['t1']['headers']);
+                $filtered_result['t1']['data'] = [];
+                foreach ($data as $index => $row) {
+                    $diff_result = array_diff_key($row, $phi_cols);
+                    $filtered_result['t1']['data'][] = array_values($diff_result);
+                }
+                return $filtered_result;
+            } else {
+                return $result;
+            }
+        }
+        $result['status']=0;
+        $result["message"] = 'Unrecognized user export rights';
+        return $result;
     }
 
     public function saveTempFile($content)
@@ -528,7 +591,7 @@ class Export
         }
 
     }
-    
+
     // used when counting the number of patients (user clicked 'count' in filter panel)
     function generateWhereClauseFromFilters($json, $project_id, $valSel, $selectClause) {
         global $module;
@@ -538,31 +601,34 @@ class Export
                 // for now ignore max and min in doing counts.  will need to think about how to do this in combo
                 // with other parameters
                 if ($filter->operator != 'MAX' && $filter->operator != 'MIN') {
-                
+
                     $filterstr = $this->filter_string($filter);
-                
+
                     $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
                         " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
-                
+
                     $filterstr = str_replace( $filter->field, $filter_val_sel, $filterstr);
-                    $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name and " .
-                        "     rd.project_id = " . $project_id . " and rd.field_name = '" . $filter->field . " ' and " .
-                        $filterstr . ") " . " " . $filter->boolean . " ";
+                    $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name "
+                        . $this->getDagFilter('rd', $project_id)
+                        . " and rd.project_id = " . $project_id
+                        . " and rd.field_name = '" . $filter->field
+                        . "' and " . $filterstr . ") " . " " . $filter->boolean . " ";
+
                 }
             }
         }
-    
+
         if (substr($sql, -4) == "AND ")
             $sql = substr($sql, 0, strlen($sql) - 4);
-    
+
         if (substr($sql, -3) == "OR ")
             $sql = substr($sql, 0, strlen($sql) - 3);
-    
+
         $module->emDebug("SQL for COUNT : " . $sql);
-    
+
         return $sql;
     }
-    
+
     /**
      * This is the function that takes the Json coming from the client and converts it into SQL,
      * executes the SQL, and returns the restuls to the client
@@ -581,9 +647,9 @@ class Export
         if (!isset($rowLimit)) {
             $rowLimit = 200;
         }
-       
+
         $valSel = "rd.value";
-        
+
         $project_id = $this->Proj->project_id;
 
         // record count feature - the end-user has clicked the "count" button in the filter panel
@@ -618,7 +684,7 @@ class Export
                 $select_fields[] = $field;
             }
         }
-    
+
         define("BASIC", 0);
         define("TEMP_TABLE_DEFN", 1);
         define("TEMP_TABLE_USE", 2);
@@ -630,7 +696,7 @@ class Export
             db_query($sql1) or die ("Sql error : ".db_error());
             $module->emDebug($sql1);
             $sql = $this->getSqlMultiPass($json, $this->Proj->project_id, TEMP_TABLE_USE); // select w/ join on temporary table
-            
+
         }
         // append a limit clause if they are asking for a preview rather than a data export
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
@@ -642,7 +708,7 @@ class Export
         if (strlen(trim($sql)) > 0) {
             // actually execute the sql - this is where the magic happens!
             $rptdata = db_query($sql);
-            
+
             $result["status"] = 1; // when status = 0 the client will display the error message
             if (strlen(db_error()) > 0) {
                 $dberr = db_error();
@@ -677,7 +743,7 @@ class Export
         while ($row = db_fetch_assoc($rptdata)) {
             $cells = [];
             for ($k = 0; $k < count($select_fields); $k++) {
-              
+
                 $cells = array_merge($cells, $this->pivotCbCell($select_fields[$k], $row[$select_fields[$k]], $showLabel, $hdrs[$k])) ; //, $data[$k]
             }
             $data[] = $cells;
@@ -754,7 +820,9 @@ class Export
             // self join to pick up the max/min for the date in the instrument specified by the filter
             $filterstr = $col . " = (select " . $filter->operator . "(rdx.value) from redcap_data rdx, redcap_metadata rmx
           where rdx.project_id  = rmx.project_id and rmx.field_name  = rdx.field_name and rdx.project_id  = "
-                .$this->Proj->project_id." and rdx.field_name = '".$filter->field."' and rdx.record=t.".REDCap::getRecordIdField().")";
+                . $this->Proj->project_id
+                . $this->getDagFilter('rdx', $this->Proj->project_id)
+                . " and rdx.field_name = '" . $filter->field . "' and rdx.record=t." . REDCap::getRecordIdField() . ")";
 
         return $filterstr;
     }
@@ -823,13 +891,13 @@ class Export
 
         return $newCells;
     }
-    
+
     function startsWith ($string, $startString)
     {
         $len = strlen($startString);
         return (substr($string, 0, $len) === $startString);
     }
-    
+
     public function getValueOrLabel($cellValue, $lov, $showLabel) {
         if ($showLabel) {
             $arLov = explode("\\n", $lov);
@@ -842,7 +910,7 @@ class Export
             return $cellValue;
         }
         return $cellValue;
-        
+
     }
 
 
@@ -963,12 +1031,12 @@ class Export
     // results are aggregated and returned as a single SQL fragment
     function handleFilters($filters, $formName, $prefix, $applyFiltersToData)
     {
-       
+
         if (! $applyFiltersToData) {
             return "";
         }
         $filtersql = " $prefix ";
-        
+
         if (is_array($filters) || is_object($filters)) {
             foreach ($filters as $filter) {
 
@@ -1099,7 +1167,7 @@ class Export
         $finalSql =  $selectClause . $finalSql ;
         if ($mode == TEMP_TABLE_USE) {
             $finalSql = $finalSql . " INNER JOIN fred on fred.$recordId = " . $priorTable . ".$recordId";
-            
+
         }
         return $finalSql;
     }
@@ -1284,16 +1352,31 @@ class Export
     function getInnerTableSql($formName, $fieldList,  $pid)
     {
         $recordId =  REDCap::getRecordIdField();
-        return "select  rd.record as $recordId,
-                        COALESCE(rd.instance, '1') ".$formName."_instance,
+            return "select  rd.record as $recordId,
+                        COALESCE(rd.instance, '1') " . $formName . "_instance,
                         $fieldList
                                 FROM redcap_data rd,
                                      redcap_metadata rm
                                 WHERE rd.project_id = rm.project_id
                                   and rm.field_name = rd.field_name
                                   and rd.project_id = $pid
-                                  and rm.form_name = '$formName'
-                                GROUP BY rd.record, rd.instance";
+                                  and rm.form_name = '$formName'".
+                                  $this->getDagFilter('rd',$pid).
+                                "GROUP BY rd.record, rd.instance";
+
+    }
+
+    function getDagFilter($prefix, $pid) {
+        global $module;
+        $userRights = $module->getUserRights();
+        if (!empty($userRights['group_id']) && $userRights['group_id']!==0) {
+            //$module->emDebug('Group ID:' . $userRights['group_id']);
+            return " and ".$prefix.".record in (select record 
+                                FROM redcap_record_list rl
+                                WHERE rl.dag_id = ".$userRights['group_id'].
+                                " and rl.project_id = $pid) ";
+        }
+        return "";
     }
 
     function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters, $mode)
@@ -1321,8 +1404,9 @@ class Export
                                      redcap_metadata rm
                                 where rd.project_id = rm.project_id
                                   and rd.project_id = $pid
-                                  and rm.field_name = rd.field_name
-                                  and rd.field_name = '$spec->foreign_key_field'
+                                  and rm.field_name = rd.field_name ".
+                                    $this->getDagFilter('rd', $pid).
+                                  " and rd.field_name = '$spec->foreign_key_field'
                                   and rm.form_name = '$spec->foreign_key_ref') t
                           where ".$formName."_int.".$formName."_instance = t.".$formName."_instance
                             and ".$formName."_int.$recordId = t.$recordId $filter) $formName";
@@ -1342,8 +1426,9 @@ class Export
       FROM redcap_data rd,
            redcap_metadata rm
       WHERE rd.project_id = rm.project_id
-        and rm.field_name = rd.field_name
-        and rd.project_id = $pid
+        and rm.field_name = rd.field_name ".
+            $this->getDagFilter('rd', $pid)
+            ." and rd.project_id = $pid
         and rm.form_name = '$formName'
       $grouper) t   " . $this->handleFilters($filters, $formName, 'WHERE', $mode != TEMP_TABLE_USE) . ") $formName";
 

@@ -111,7 +111,10 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 <div class="col-md-3 pt-3 overflow-auto" style="max-height: 750px;">
                     <!-- this div is selected by bstreeview.js to render content specified by the Json at the bottom of the page -->
                     <!-- also note we use a customized version of bstreeview that makes each element draggable  -->
-                    <div id="tree" class="bstreeview " >
+                  <div id="treeSearchDiv">
+                    <input type="text" id="treeSearch" class="mb-3" placeholder="Search fields">
+                  </div>
+                  <div id="tree" class="bstreeview " >
 
                     </div>
 
