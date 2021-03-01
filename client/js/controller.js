@@ -345,9 +345,9 @@ function saveExportJson() {
                 $el.empty(); // remove old options
                 $el.append($("<option></option>")
                     .attr("value", '').text('Select a Report'));
-                $.each(JSON.parse(response.reports), function (key, value) {
+                $.each(JSON.parse(addslashes(response.reports)), function (key, value) {
                     $el.append($("<option></option>")
-                        .attr("value", JSON.stringify(value)).text(key));
+                        .attr("value", JSON.stringify(addslashes(value))).text(key));
                 });
             }
 
