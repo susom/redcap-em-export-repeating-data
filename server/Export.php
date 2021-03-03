@@ -91,7 +91,7 @@ class Export
         //this doesn't work either  $module->framework->getUser(USERID)
 
         $rights=$module->getUserRights();
-        //$module->emDebug("Rights :" . print_r($rights, TRUE));
+        $module->emDebug("Rights :" . print_r($rights, TRUE));
         //$module->emDebug("data_export_tool=".$rights['data_export_tool']);
         if (empty($rights) || $rights['data_export_tool'] === '1') {
             // user is superuser or has phi access
