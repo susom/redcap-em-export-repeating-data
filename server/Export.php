@@ -88,13 +88,13 @@ class Export
     function applyUserExportRights($result) {
         global $module;
         //this doesn't work $user=$module->getUser();
-        //$module->emDebug("User : " .print_r($module->framework->getUser(USERID), true));
+        //this doesn't work either  $module->framework->getUser(USERID)
 
         $rights=$module->getUserRights();
         //$module->emDebug("Rights :" . print_r($rights, TRUE));
         //$module->emDebug("data_export_tool=".$rights['data_export_tool']);
-        if ($rights['data_export_tool'] === '1') {
-            // phi access
+        if (empty($rights) || $rights['data_export_tool'] === '1') {
+            // user is superuser or has phi access
             return $result;
         } else if ($rights['data_export_tool'] === '0') {
             //no access
