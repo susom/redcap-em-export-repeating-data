@@ -1071,7 +1071,7 @@ class Export
                 if ($cnt > 0) {
                     $fieldstr .= ", ";
                 }
-                $fieldstr .= "COALESCE ($instrument.$field,'') `$field`";
+                $fieldstr .= "COALESCE (".$instrument."_a.".$field.",'') `$field`"; // append _a to table alias in case the table name is a SQL reserved word
                 $cnt++;
                 if ($mode == TEMP_TABLE_DEFN) {
                     break; // only need record_ids in the temp table
@@ -1113,7 +1113,7 @@ class Export
         foreach ($children as $formName => $instances) {
             // start with the parent
             $spec = $json->forms->$formName;
-            $selectClause = "$formName.$recordId, ".$formName."_instance, ";
+            $selectClause = "$formName"."_a.$recordId, ".$formName."_instance, ";
             $selectClause .= $this->getFields($formName, $spec->fieldsToDisplay, $mode);
             $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
             $inlineTable = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
@@ -1127,9 +1127,9 @@ class Export
                 $inlineTable .= $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
                 $jk = ($spec->join_key_field == 'instance' ? $spec->form_name . "." . $spec->form_name . "_instance" :  $spec->join_key_field);
                 $fk = $spec->foreign_key_ref;
-                $inlineTable .= " ON $formName.$recordId=$spec->form_name.$recordId AND /*1*/ $jk = " . $fk . "_instance";
+                $inlineTable .= " ON ".$formName."_a.$recordId=$spec->form_name"."_a.$recordId AND /*1*/ $jk = " . $fk . "_instance";
             }
-            $inlineTable = "(select  $selectClause  FROM ( $inlineTable ) ) $formName" ;
+            $inlineTable = "(select  $selectClause  FROM ( $inlineTable ) ) $formName" . "_a" ;
             $tablePivots[$formName] = $inlineTable;
 
         }
@@ -1214,7 +1214,7 @@ class Export
 
         if ($cntTableJoins > 0) {
             if ($spec->join_type != 'date_proximity') {
-                $finalSql .= " ON $formName.$recordId=$priorTable.$recordId ";
+                $finalSql .= " ON $formName"."_a.$recordId=$priorTable"."_a.$recordId ";
             } else {
                 $finalSql .= " " . $joinClause;
             }
@@ -1411,9 +1411,9 @@ class Export
                                   " and rd.field_name = '$spec->foreign_key_field'
                                   and rm.form_name = '$spec->foreign_key_ref') t
                           where ".$formName."_int.".$formName."_instance = t.".$formName."_instance
-                            and ".$formName."_int.$recordId = t.$recordId $filter) $formName";
+                            and ".$formName."_int.$recordId = t.$recordId $filter) $formName" . "_a";
         // as odd as the join clause looks, it's actually correct
-        $joinClause = "ON ($formName.$recordId = $spec->foreign_key_ref.$recordId and $formName.".$spec->foreign_key_ref."_instance = $spec->foreign_key_ref.".$spec->foreign_key_ref."_instance)";
+        $joinClause = "ON ($formName"."_a.$recordId = $spec->foreign_key_ref"."_a.$recordId and $formName"."_a.".$spec->foreign_key_ref."_instance = $spec->foreign_key_ref"."_a.".$spec->foreign_key_ref."_instance)";
         $pieces['joinClause'] = $joinClause;
         $pieces['tableSql'] = $tableSql;
         return $pieces;
@@ -1432,7 +1432,7 @@ class Export
             $this->getDagFilter('rd', $pid)
             ." and rd.project_id = $pid
         and rm.form_name = '$formName'
-      $grouper) t   " . $this->handleFilters($filters, $formName, 'WHERE', $mode != TEMP_TABLE_USE) . ") $formName";
+      $grouper) t   " . $this->handleFilters($filters, $formName, 'WHERE', $mode != TEMP_TABLE_USE) . ") $formName"."_a";
 
         return $finalSql  ;
     }
