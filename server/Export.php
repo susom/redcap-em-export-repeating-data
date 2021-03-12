@@ -862,28 +862,30 @@ class Export
     // and converts values to labels
     private function pivotCbCell($field, $cellValue, $showLabel, $fieldName)
     {
+        
         $newCells = [];
         $loSetValues = explode("\n", $cellValue);
         if ($showLabel) {
             $lovMeta = $this->instrumentMetadata->getValue($field . '@lov');
         }
-
+        
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
             $lov = explode("\\n", $lovstr);
-
+            
             for ($i = 0; $i < count($lov); ++$i) {
                 $found = false;
-                for ($j = 0; $j < count($lov); ++$j) {
+                // now look in loSetValues for the index
+                for ($j = 0; $j < count($loSetValues); ++$j) {
                     // consider each possible value from the data dictionary in turn
-                    if (strpos($lov[$i], $loSetValues[$j]) !== FALSE) {
+                    if (strpos($lov[$i], $loSetValues[$j]) === 0) {
                         $newCells[] = $this->getValueOrLabel($loSetValues[$j], $lovMeta, $showLabel);
                         $found = true;
                     }
                 }
                 if (! $found) {
                     $newCells[] = '';
-                }
+               }
             }
         } else {
             $newCells[] = $this->getValueOrLabel($cellValue, $lovMeta, $showLabel);

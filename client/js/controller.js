@@ -152,6 +152,18 @@ function applyValdtn(uiElement) {
     return true;
 }
 
+function escapeHtml(text) {
+    var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
 function runQuery(preview, record_count) {
     // when preview === false, a CSV w/ headers comes back for data download;
     // when preview === true, 200 rows without a header is returned for display inline in the datatable
@@ -191,7 +203,7 @@ function runQuery(preview, record_count) {
                 showError("Error: " + response.message);
             } else {
                 if (preview) {
-                    // console.log(response);
+                     console.log(response);
                     t1 = response.t1;
                     // t2 = response.t2;
                     var table_data = tableize(t1.headers, t1.data);
@@ -276,43 +288,18 @@ function tableize(headers, rows) {
         table += '<tr>'
         isFirst = true;
         row.forEach(function(cell, index) {
+            ce = escapeHtml(cell);
             if (isFirst) {
-                table +=  '<td><a href="' + getInstrumentForField('url') + cell + '">' + cell + '</a></td>';
+                table +=  '<td><a href="' + getInstrumentForField('url') + ce + '">' + ce + '</a></td>';
                 isFirst = false;
             } else {
-                table +=  '<td>' + cell + '</td>';
+                table +=  '<td>' + ce + '</td>';
             }
         });
         table += '</tr>'
     });
     table += '</tbody></table></div>'
     return table;
-}
-
-// function tableize2(headers, rows) {
-//     // datatable.net seems to expect full on <table><tr><td></td></tr></table> markup
-//     var table = '<div id="preview-table-div2"><table id="preview-table2" class="display"><thead>';
-//     headers.forEach(function (header, index) {table +=  '<th>' + header + '</th>';});
-//     table += '</thead><tbody>'
-//     rows.forEach(function (row, index) {
-//         table += '<tr>'
-//         isFirst = true;
-//         row.forEach(function(cell, index) {
-//             if (isFirst) {
-//                 table +=  '<td><a href="' + getInstrumentForField('url') + cell + '">' + cell + '</a></td>';
-//                 isFirst = false;
-//             } else {
-//                 table +=  '<td>' + cell + '</td>';
-//             }
-//         });
-//         table += '</tr>'
-//     });
-//     table += '</tbody></table></div>'
-//     return table;
-// }
-
-function tableize_col(col, index) {
-    return '<td>' + col + '</td>';
 }
 
 function toggleIcon(id) {
