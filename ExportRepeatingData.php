@@ -145,6 +145,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getInstrumentNames() {
+        $this->emDebug("user rights " . print_r($this->userRights, true));
         return $this->instrumentMetadata->getInstrumentNames();
     }
 
