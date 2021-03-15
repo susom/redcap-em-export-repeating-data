@@ -67,10 +67,12 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     }
 
     private function applyUserViewingRights($dataDictionary) {
-        if (in_array('0',$this->userRights['forms'])) {
-            foreach ($dataDictionary as $field_name => $field_info) {
-                if (!$this->userRights['forms'][$field_info['form_name']]) {
-                    unset($dataDictionary[$field_name]);
+        if (! SUPER_USER) {
+            if (in_array('0', $this->userRights['forms'])) {
+                foreach ($dataDictionary as $field_name => $field_info) {
+                    if (!$this->userRights['forms'][$field_info['form_name']]) {
+                        unset($dataDictionary[$field_name]);
+                    }
                 }
             }
         }
@@ -145,7 +147,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getInstrumentNames() {
-        $this->emDebug("user rights " . print_r($this->userRights, true));
         return $this->instrumentMetadata->getInstrumentNames();
     }
 
