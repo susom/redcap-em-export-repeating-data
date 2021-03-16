@@ -73,6 +73,10 @@ class ClientMetadata
                         <?php
                         $fields = $module->getFieldNames($key);
                         foreach ($fields as $field) {
+                            // SQL fields use the element_enum field for the SQL, but it's not actually an enum
+                            if ($this->dataDict[$field]['element_type'] === 'sql') {
+                                continue;
+                            }
                         ?>
                             instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
                             instrumentLookup["<?php echo $field ?>@validation"] = "<?php echo $module->getValue($field . '@validation') ?>";
