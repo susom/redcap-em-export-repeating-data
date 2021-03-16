@@ -429,8 +429,13 @@ class ClientMetadata
             $dberr = db_error();
             $module->emError('Query error in autocomplete generation: ' . print_r($dberr, TRUE));
          } else {
-            echo "<script>";
+            
+            $nFilters = 0;
             while ($row = db_fetch_assoc($autodata)) {
+                if ($nFilters == 0) {
+                    echo "<script>";
+                }
+                $nFilters++;
                 $fieldName = $row['field_name'];
                 $value= str_replace("\n","", $row['value']);
                 if ($currentFieldName != $fieldName) {
@@ -442,11 +447,13 @@ class ClientMetadata
                     $textFieldNames[] = $currentFieldName;
                 }
                 echo "  '$value',";
-                //$module->emDebug('merged: ' . print_r($data, TRUE));
+                
             }
         }
         // $module->emDebug('YO1: ' . print_r($textFieldNames, TRUE));
-        echo "\n];\n$( '#$currentFieldName"."_ac' ).autocomplete({\n  source: $currentFieldName"."_aclov\n});</script>";
+        if ($nFilters > 0) {
+            echo "\n];\n$( '#$currentFieldName" . "_ac' ).autocomplete({\n  source: $currentFieldName" . "_aclov\n});</script>";
+        }
 
         // ok, now the script has been written, add the field definitions
         foreach ($textFieldNames as $textFieldName) {
