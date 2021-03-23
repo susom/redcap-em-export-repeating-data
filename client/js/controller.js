@@ -46,7 +46,7 @@ $(function () {
             if (response.status === 0) {
                 showError("Error: " + response.message);
             } else {
-                //console.log(response);
+                // console.log(response);
                 $("#insert-row-filters-here").replaceWith(response);
             }
 
@@ -99,7 +99,7 @@ $(function () {
                 data: {'action': 'delete', 'report_name': $(this).data('report-name')},
                 dataType: 'json',
                 success: function (response) {
-                    if (response.status == 'success') {
+                    if (response.status === 'success') {
                         loadSavedReportSettings()
                     }
 
@@ -327,7 +327,7 @@ function saveExportJson() {
         data: {'action': 'save', 'report_name': json.reportname, 'report_content': json},
         dataType: 'json',
         success: function (response) {
-            if (response.status == 'success') {
+            if (response.status === 'success') {
                 var $el = $("#saved-reports");
                 $el.empty(); // remove old options
                 $el.append($("<option></option>")
@@ -526,7 +526,7 @@ function loadSavedReportSettings() {
         data: {'action': 'load'},
         dataType: 'json',
         success: function (response) {
-            if (response.status == 'success') {
+            if (response.status === 'success') {
                 var $el = $("#saved-reports-tbody");
                 $el.empty(); // remove old options
                 $.each(JSON.parse(response.reports), function (key, value) {

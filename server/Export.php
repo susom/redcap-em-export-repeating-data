@@ -708,7 +708,7 @@ class Export
         if (strlen(trim($sql)) > 0) {
             // actually execute the sql - this is where the magic happens!
             $rptdata = db_query($sql);
-
+            
             $result["status"] = 1; // when status = 0 the client will display the error message
             if (strlen(db_error()) > 0) {
                 $dberr = db_error();
@@ -734,6 +734,7 @@ class Export
     // and by replacing codes with labels if so requested by the end-user
     function package($preview, $select_fields, $rptdata, $showLabel)
     {
+        global $module;
         $data = [];
         $hdrs = $this->pivotCbHdr($select_fields);
         if ("false" == $preview) {
@@ -741,6 +742,7 @@ class Export
             $data[] = $hdrs;  // $headers;
         }
         while ($row = db_fetch_assoc($rptdata)) {
+            $module->emDebug(print_r($row,TRUE));
             $cells = [];
             for ($k = 0; $k < count($select_fields); $k++) {
 
