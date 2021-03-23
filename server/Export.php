@@ -885,7 +885,7 @@ class Export
                 }
                 if (! $found) {
                     $newCells[] = '';
-               }
+                }
             }
         } else {
             $newCells[] = $this->getValueOrLabel($cellValue, $lovMeta, $showLabel);
@@ -901,6 +901,9 @@ class Export
     }
 
     public function getValueOrLabel($cellValue, $lov, $showLabel) {
+        if (! $cellValue) {
+            return $cellValue;
+        }
         if ($showLabel) {
             $arLov = explode("\\n", $lov);
             foreach($arLov as $value) {
@@ -1371,7 +1374,7 @@ class Export
     function getDagFilter($prefix, $pid) {
         global $module;
         $userRights = $module->getUserRights();
-        if (!empty($userRights['group_id']) && $userRights['group_id']!==0) {
+        if ( !empty($userRights['group_id']) && $userRights['group_id']!==0) {
             //$module->emDebug('Group ID:' . $userRights['group_id']);
             return " and ".$prefix.".record in (select record 
                                 FROM redcap_record_list rl
