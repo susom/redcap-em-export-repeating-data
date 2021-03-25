@@ -150,7 +150,7 @@ class ClientMetadata
 
                 var newdata;
                 if (ind > 0) {
-                    var js = '\<script\>\$( function() {$( \"#'+fieldname1+'_ac\" ).autocomplete({source: '+fieldname1+'_aclov }); } );</script\>';
+                    var js = '\<script\>\$( function() {$( \"#'+fieldname1+'_ac\" ).autocomplete({source: '+fieldname1+'_aclov }); } );\</script\>';
 
                     newdata = data.substr(0,ind) + ' id=\"' + fieldname1 + '_ac\" ' + data.substr(ind) +js  ;
                 } else {
