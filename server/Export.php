@@ -864,7 +864,7 @@ class Export
     // and converts values to labels
     private function pivotCbCell($field, $cellValue, $showLabel, $fieldName)
     {
-        
+        global $module;
         $newCells = [];
         $loSetValues = explode("\n", $cellValue);
         if ($showLabel) {
@@ -874,12 +874,15 @@ class Export
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
             $lov = explode("\\n", $lovstr);
+            $module->emDebug('checked values ' . print_r($lov,TRUE));
             
             for ($i = 0; $i < count($lov); ++$i) {
                 $found = false;
                 // now look in loSetValues for the index
                 for ($j = 0; $j < count($loSetValues); ++$j) {
                     // consider each possible value from the data dictionary in turn
+                    $module->emDebug($i. ' '. $j. ' comparing ' . $lov[$i] . ' to ' . $loSetValues[$j] . ' ... strpos= ' . strpos($lov[$i], $loSetValues[$j]) .' / ' . strpos(trim($lov[$i]), trim($loSetValues[$j])));
+                    
                     if (strpos($lov[$i], $loSetValues[$j]) === 0) {
                         $newCells[] = $this->getValueOrLabel($loSetValues[$j], $lovMeta, $showLabel);
                         $found = true;
