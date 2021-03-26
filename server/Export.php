@@ -883,8 +883,8 @@ class Export
                     // consider each possible value from the data dictionary in turn
                     $module->emDebug($i. ' '. $j. ' comparing ' . $lov[$i] . ' to ' . $loSetValues[$j] . ' ... strpos= ' . strpos($lov[$i], $loSetValues[$j]) .' / ' . strpos(trim($lov[$i]), trim($loSetValues[$j])));
                     
-                    if (strpos($lov[$i], $loSetValues[$j]) === 0) {
-                        $newCells[] = $this->getValueOrLabel($loSetValues[$j], $lovMeta, $showLabel);
+                    if (strpos(trim($lov[$i]), trim($loSetValues[$j])) === 0) {
+                        $newCells[] = $this->getValueOrLabel(trim($loSetValues[$j]), $lovMeta, $showLabel);
                         $found = true;
                     }
                 }
