@@ -1203,7 +1203,7 @@ class Export
             } else {
                 // Remove the table alias from the end of this string
                 // when $tablePivots $innerTableSql used in this context
-                $innerTableSql = $this->str_lreplace($formName , '', $innerTableSql);
+                $innerTableSql = $this->str_lreplace($formName . "_a" , '', $innerTableSql);
             }
             $pieces = $this->getDateProximityTableJoin($spec->form_name, $innerTableSql, $spec, $pid, $filters, $mode);
             $finalSql .= $pieces['tableSql'];
