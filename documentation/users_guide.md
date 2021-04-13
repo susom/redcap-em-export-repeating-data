@@ -18,24 +18,24 @@ Once launched, you will see a screen similar to this:
 
 <img src="./assets/redug_2.png" width="1000"/>
 
-### Report Name. 
+### A. Report Name. 
 Specify the name of the file for your exported data or settings. Not required for preview.
 
 
-### Instruments and Fields. 
+### B. Instruments and Fields. 
 Here you should see a familiar looking list of all instruments and fields in your project, in the order specified in your project’s data dictionary, displayed in a hierarchical tree control. Instruments are tagged with a black document icon; fields have no icon, just the variable name. You will use this list to specify which columns to include in your report along with any filters to apply to limit the number of rows returned. Single click on an instrument name to toggle back and forth between showing and hiding its associated fields.
 
 
-### Filter Rows. 
+### C. Filter Rows. 
 Optionally drag a field from the left hand side and drop it into this box to start the process of specifying a row filter. To complete a filter, select the operation from the dropdown and specify the parameter in the text/dropdown field. If multiple filters are used, select the appropriate boolean logic operand used to join the filters. The final boolean operator is ignored. To discard a filter, click the  x  on the far right. Note that filters cannot be re-ordered, so if ordering is important, you should drop the filters into this control in the order you wish them to be evaluated.
 
 <img src="./assets/redug_3.png" width="800"/>
 
-### Record count. 
+### D. Record count. 
 This feature allows you to count the distinct records in your REDCap rather than patients in the clinical dataset. When you are satisfied with your filter settings, click the “count” button in the upper right corner to trigger a database query that will return the number of matching records.  Note that this is very likely a different number than the final number of rows returned in your data report; this count is of the distinct number of matching records. If you have repeating data associated with these records, the number of rows in the data report is likely to be much larger.
 
 
-### Report columns. 
+### E. Report columns. 
 Drag an instrument or field from the left hand side and drop it into this area to create a new control consisting of checkboxes for all the fields in the given instrument. If you drop an instrument, all fields will be selected. If you drop a field, only that field will be selected. You can then turn other fields on and off using the checkboxes. You can also show/hide the checkbox panel using the small control to the left of the panel name in the colorful panel header. This can come in handy when working with instruments having many fields.
 
 <img src="./assets/redug_4.png" width="800"/>
@@ -43,25 +43,25 @@ Drag an instrument or field from the left hand side and drop it into this area t
 Configuring a report with multiple instruments is covered in the “Reporting on Multiple Forms” section below.
 
 
-### Preview data. 
+### F. Preview data. 
 Click this button to see a data preview in your browser of the report you have specified. Note that previews will only return a limited number of rows. The default limit is 200 rows, but this can be re-configured by a REDCap project admin by clicking on the ‘External Modules’ link on the left hand side, clicking the “Configure” button next to “ExportRepeatingData - v9.9.9”,  and specifying the new row limit.
 
 Note that since each row in this view is hyperlinked back to the underlying record, you can use this EM as a sophisticated record finder as well as a data export tool.
 
 
-### Export Data. 
+### G. Export Data. 
 Once you are satisfied with the data returned in the preview, click “Export Data” to trigger a data download of the full dataset. The returned file will be named with the name supplied in the Report Name field, or “unnamed_report” if left blank. The only file format supported at this time is comma separated (.csv). This may take a few minutes; the spinner control indicates that the system is still waiting for a response from the server.
 
 
-### Labels / Raw. 
+### H. Labels / Raw. 
 As with REDCap’s built in reporting, you have the option of specifying whether you want the raw (coded) data, or the data labels.
 
 
-### Save Settings. 
+### I. Save Settings. 
 When you go to the trouble of creating a complex report, it can be handy to save all your settings to re-run the report at a later date. To export all your settings in a format that can be used to restore them later, click “Save Settings”. As with data export, the file name will reflect what you typed into the Report Name field. The file type is .json.
 
 
-### Load Settings. 
+### J. Load Settings. 
 To load a saved .json file, click this button, then drop the saved .json into the drop area that pops up.
 
 ## Reporting on multiple forms
