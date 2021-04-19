@@ -417,14 +417,13 @@ class ClientMetadata
 
     function getFilterDefns() {
         global $module;
-        $sql = "select rd.field_name,value
+        $sql = "select rd.field_name,substring(value,1,33) value, element_validation_type
                         from redcap_data rd
                         join redcap_metadata rm on rd.project_id = rm.project_id
                          and rm.field_name = rd.field_name
                         where rd.project_id = ".$module->getProjectId()."
                         and element_type in ('calc', 'text')
-                        group by rd.field_name, value
-                        order by rd.field_name, upper(value)";
+                        group by rd.field_name,substring(value,1,33), element_validation_type";
         $autodata = db_query($sql);
         $textFieldNames = [];
 
@@ -442,6 +441,7 @@ class ClientMetadata
                 $nFilters++;
                 $fieldName = $row['field_name'];
                 $value= str_replace("\n","", $row['value']);
+                $validation = $row['element_validation_type'];
                 if ($currentFieldName != $fieldName) {
                     if (strlen($currentFieldName) > 0) { // close off the end of the earlier variable definition
                         echo "\n];\n$( \"#$currentFieldName"."_ac\" ).autocomplete({\n  source: $currentFieldName"."_aclov\n});";
@@ -450,7 +450,38 @@ class ClientMetadata
                     $currentFieldName = $fieldName;
                     $textFieldNames[] = $currentFieldName;
                 }
+                if (strlen($value) > 32) {
+                    $value = substr($value, 0, 29) . "...";
+                }
+                if (strpos($value, '\n') > 0) {
+                    $value = substr($value, 0, strpos($value, '\n') -1);
+                }
                 $value = str_replace("'","\'", $value);
+                // last but not least, if this is a date, reformat using the active format string
+                $module->emDebug('validation is ' . $validation. ' ' .("date_mdy" === $validation ). ' '.("date_mdy" == $validation));
+                if ("date_mdy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['month'] .'-'. $ar['day'] .'-'. $ar['year'];
+                    $module->emDebug('rewrote value as ' . $value);
+                } else if ("date_dmy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['day'] .'-'. $ar['month'] .'-'. $ar['year'];
+                    $module->emDebug('rewrote value as ' . $value);
+                } else if ("datetime_mdy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['month'] .'-'. $ar['day'] .'-'. $ar['year'] .' '. $ar['hour'] .':'. $ar['minute'];
+                    $module->emDebug('rewrote value as ' . $value);
+                } else if ("datetime_dmy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['day'] .'-'. $ar['month'] .'-'. $ar['year'] .' '. $ar['hour'] .':'. $ar['minute'];
+                    $module->emDebug('rewrote value as ' . $value);
+                } else if ("datetime_seconds_mdy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['month'] .'-'. $ar['day'] .'-'. $ar['year'] .' '. $ar['hour'] .':'. $ar['minute'] . ':' .$ar['second'];
+                } else if ("datetime_seconds_dmy" === $validation) {
+                    $ar = date_parse($value);
+                    $value = $ar['day'] .'-'. $ar['month'] .'-'. $ar['year'] .' '. $ar['hour'] .':'. $ar['minute'] . ':' .$ar['second'];
+                }
                 echo "  '$value',";
                 
             }
