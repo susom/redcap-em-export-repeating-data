@@ -450,6 +450,7 @@ class ClientMetadata
                     $currentFieldName = $fieldName;
                     $textFieldNames[] = $currentFieldName;
                 }
+                $value = str_replace("'","\'", $value);
                 echo "  '$value',";
                 
             }
