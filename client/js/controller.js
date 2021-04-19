@@ -46,7 +46,7 @@ $(function () {
             if (response.status === 0) {
                 showError("Error: " + response.message);
             } else {
-                // console.log(response);
+                 console.log(response);
                 $("#insert-row-filters-here").replaceWith(response);
             }
 
