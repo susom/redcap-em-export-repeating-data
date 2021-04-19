@@ -465,7 +465,7 @@ function getExportJson(is_preview, formdata, record_count) {
     struct.columns = columns;
     struct.filters = filters;
     struct.cardinality = Object.assign({}, cardinality);
-      console.log(struct);
+    //  console.log(struct);
     return struct;
 
 }
