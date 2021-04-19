@@ -450,13 +450,14 @@ class ClientMetadata
                     $currentFieldName = $fieldName;
                     $textFieldNames[] = $currentFieldName;
                 }
-                if (strlen($value) > 32) {
-                    $value = substr($value, 0, 29) . "...";
-                }
+//                if (strlen($value) > 32) {
+//                    $value = substr($value, 0, 29) . "...";
+//                }
                 if (strpos($value, '\n') > 0) {
                     $value = substr($value, 0, strpos($value, '\n') -1);
                 }
                 $value = str_replace("'","\'", $value);
+                $value = str_replace("\\","\\\\", $value);
                 // last but not least, if this is a date, reformat using the active format string
                 $module->emDebug('validation is ' . $validation. ' ' .("date_mdy" === $validation ). ' '.("date_mdy" == $validation));
                 if ("date_mdy" === $validation) {
