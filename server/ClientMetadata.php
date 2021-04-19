@@ -80,7 +80,7 @@ class ClientMetadata
                         ?>
                             instrumentLookup["<?php echo $field ?>"] = "<?php echo $key ?>";
                             instrumentLookup["<?php echo $field ?>@validation"] = "<?php echo $module->getValue($field . '@validation') ?>";
-                            instrumentLookup["<?php echo $field ?>@lov"] = "<?php echo $module->getValue($field . '@lov') ?>";
+                            instrumentLookup["<?php echo $field ?>@lov"] = "<?php echo str_replace($module->getValue($field . '@lov'),'"','\"') ?>";
                         <?php
                         }
                         // last but not least, add lookups for parent instruments to handle the case where the relationships
@@ -114,7 +114,7 @@ class ClientMetadata
                         // add last or earliest filter for date fields
                         if (data.indexOf('class="date_') > -1) {
                             limiterOperator.append('<option class="minmax" value="MAX">latest</option>');
-                            limiterOperator.append('<option class="minmax" value="MIN">earliest</option>');;
+                            limiterOperator.append('<option class="minmax" value="MIN">earliest</option>');
                         }
                         // hide the text box if date filter is exists, not-exists, max or min
                         limiterOperator.attr('id', fieldname + '_op');
