@@ -444,7 +444,7 @@ class ClientMetadata
                 // and disable the entire list of values for all fields
                 // note that REDCap data entry already strips these out of text fields, only preserving them in notes
                 // also note that these characters can and will show up in REDCap projects populated via data import
-                $value= str_replace(str_replace("\n","", $row['value']), "\r", "");
+                $value= str_replace("\r", "", str_replace("\n","", $row['value']));
                 $validation = $row['element_validation_type'];
                 if ($currentFieldName != $fieldName) {
                     if (strlen($currentFieldName) > 0) { // close off the end of the earlier variable definition
