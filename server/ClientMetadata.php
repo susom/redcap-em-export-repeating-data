@@ -459,7 +459,6 @@ class ClientMetadata
                 $value = str_replace("\\","\\\\", $value);
                 $value = str_replace("'","\'", $value);
                 // last but not least, if this is a date, reformat using the active format string
-                $module->emDebug('validation is ' . $validation. ' ' .("date_mdy" === $validation ). ' '.("date_mdy" == $validation));
                 if ("date_mdy" === $validation) {
                     $ar = date_parse($value);
                     $value = $ar['month'] .'-'. $ar['day'] .'-'. $ar['year'];
