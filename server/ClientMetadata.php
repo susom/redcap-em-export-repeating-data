@@ -440,7 +440,11 @@ class ClientMetadata
                 }
                 $nFilters++;
                 $fieldName = $row['field_name'];
-                $value= str_replace("\n","", $row['value']);
+                // strip out both \n and \r as these embedded in a search string will create invalid javascript
+                // and disable the entire list of values for all fields
+                // note that REDCap data entry already strips these out of text fields, only preserving them in notes
+                // also note that these characters can and will show up in REDCap projects populated via data import
+                $value= str_replace(str_replace("\n","", $row['value']), "\r", "");
                 $validation = $row['element_validation_type'];
                 if ($currentFieldName != $fieldName) {
                     if (strlen($currentFieldName) > 0) { // close off the end of the earlier variable definition
@@ -449,12 +453,6 @@ class ClientMetadata
                     echo "\nvar $fieldName" . "_aclov = [";
                     $currentFieldName = $fieldName;
                     $textFieldNames[] = $currentFieldName;
-                }
-//                if (strlen($value) > 32) {
-//                    $value = substr($value, 0, 29) . "...";
-//                }
-                if (strpos($value, '\n') > 0) {
-                    $value = substr($value, 0, strpos($value, '\n') -1);
                 }
                 $value = str_replace("\\","\\\\", $value);
                 $value = str_replace("'","\'", $value);
