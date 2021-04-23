@@ -652,21 +652,22 @@ class Export
 
         $project_id = $this->Proj->project_id;
 
-        // record count feature - the end-user has clicked the "count" button in the filter panel
+        // record count feature - return this every time the end-user interacts with a button
+        // not just when they click the "count" button in the filter panel
+    
+        $sql = "select count(distinct rdm.record) as row_count " ;
+        $sql = $this->generateWhereClauseFromFilters($json, $project_id, $valSel, $sql);
+
+        $result1 = db_query($sql);
+
+        $row = db_fetch_assoc($result1);
+
+        $result["count"] = $row["row_count"];
+        
+        // if the user is asking for just counts, return. Otherwise they are asking for data , so carry on
         if ($json->record_count === 'true') {
-            $sql = "select count(distinct rdm.record) as row_count " ;
-            $sql = $this->generateWhereClauseFromFilters($json, $project_id, $valSel, $sql);
-
-            $result1 = db_query($sql);
-
-            $row = db_fetch_assoc($result1);
-
-            $result["count"] = $row["row_count"];
             return $result;
         }
-
-        // if we reach this point, the user is asking for data rather than counts
-
         // Keep the order of the fields as specified by the user
         $select_fields = array();  // Fields which will be returned to the caller
 
