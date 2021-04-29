@@ -111,7 +111,7 @@ If you write a report with Visit as the Primary and PFT as the secondary, specif
 
 If you write a report with Visit as the Primary and PFT as the secondary, specifying a 45 day before and after limit, you will get back two rows for the two visits, with data for the nearest PFT test results, one of which happened prior to the visit (June prior to July), the other after (Sept after August). The PFT test results from January will be filtered out as the June result was the closer match to the first visit.
 
-<img src="./documention/assets/redug_11.png" width="800"/>
+<img src="./documentation/assets/redug_11.png" width="800"/>
 
 And if you write a report with Visit as the Primary and PFT as the secondary with no limits, you will get back three rows, including two rows for the July visit, one with the matching PFT form January, the other with the match from June.
 
