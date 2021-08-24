@@ -196,7 +196,7 @@ class ClientMetadata
                                 // look for the instance linked panel; only tag as tier-3 if present
                                 var badge = $(this).find(".badge-primary");
                                 var linkedToInstrument =  badge.text().substr(22).trim();
-                                // console.log(instrumentName + ' linked to '+ linkedToInstrument);
+                                var linkedInstruments = linkedToInstrument.split("|");
                                 targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
                                 if (! targetDate) {
                                     targetDate = getInstrumentForField(getInstrumentForField(firstRepeatingPanel + '@parent') + '_@date_field');
@@ -204,7 +204,7 @@ class ClientMetadata
                                 $(this).find(".target-date").replaceWith("<span class='target-date'> after " + targetDate + " (days)</span>");
                                 linkedInstrumentFound  = false;
                                 for (let i = 0; i < repeatingForms.length; i++) {
-                                    linkedInstrumentFound = linkedInstrumentFound || linkedToInstrument.includes( repeatingForms[i] );
+                                    linkedInstrumentFound = linkedInstrumentFound || linkedInstruments.includes( repeatingForms[i] );
                                 }
 
                                 if (linkedInstrumentFound) {
