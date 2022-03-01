@@ -89,36 +89,54 @@ class Export
         global $module;
         //this doesn't work $user=$module->getUser();
         //this doesn't work either  $module->framework->getUser(USERID)
+        $export_instr = $module->getUserRights()['data_export_instruments'];
+        $export_rights = [];
+        preg_match_all('/\[([^\]]*)\]/', $export_instr, $export_rights);
+        $rights = [];
+        foreach ($export_rights[1] as $export_right) {
+            $split = explode(',',$export_right);
+            $rights[$split[0]] =  $split[1];
+        }
+        //$module->emDebug("Rights SPLIT :" . print_r($rights, TRUE));
 
-        $rights=$module->getUserRights();
-        $module->emDebug("Rights :" . print_r($rights, TRUE));
-        //$module->emDebug("data_export_tool=".$rights['data_export_tool']);
-        if (empty($rights) || $rights['data_export_tool'] === '1') {
-            // user is superuser or has phi access
+        if (empty($rights) || (count(array_unique($rights))==1 && end($rights)==='1')) {
+            // user is superuser or has phi access to all forms
             return $result;
-        } else if ($rights['data_export_tool'] === '0') {
-            //no access
+        } else if (count(array_unique($rights))==1 && end($rights)==='0') {
+            // user does not have access to any forms
             $result['status']=0;
             $result["message"] = 'User does not have data export access';
             return $result;
-        } else if ($rights['data_export_tool'] === '2'
-            ||$rights['data_export_tool'] === '3') {
-            // 2 == no text, dates or phi
-            // 3 == no phi
+        } else if (count(array_diff($rights,array('0','1','2','3'))) == 0) {
+            // check for no undefined export rights
+
+            // 0 == no access; 1 == phi allowed
+            // 2 == no text, dates or phi; 3 == no phi
             $headers=$result['t1']['headers'];
             $data = $result['t1']['data'];
             $dd = $module->getDataDictionary();
             //$module->emDebug("data :" . print_r($data, TRUE));
+            //$module->emDebug("data dictionary :" . print_r($dd, TRUE));
 
             $phi_cols=[];
             foreach ($headers as $index=>$header) {
                 if (array_key_exists($header, $dd)) {
-                    // leave record_id field
-                    if ($rights['data_export_tool'] === '2' &&
-                        REDCap::getRecordIdField() !== $header &&
-                        strpos($dd[$header]['element_type'],'text')!==false) {
+                    // for rights == 0, remove everything, should we leave record_id?
+                    if ($rights[$dd[$header]['form_name']] === '0') {
                         $phi_cols[$index]=$header;
-                    } else if ($dd[$header]['field_phi']==='1') {
+                    }
+                    // remove phi for all except rights ===1, but leave record_id field
+                    if ($rights[$dd[$header]['form_name']] !== '1'
+                        && REDCap::getRecordIdField() !== $header
+                        && $dd[$header]['field_phi']==='1') {
+                        $phi_cols[$index]=$header;
+                    }
+                    // for rights == 2, also remove text fields and dates
+                    if ($rights[$dd[$header]['form_name']] === '2' &&
+                        REDCap::getRecordIdField() !== $header &&
+                        (strpos($dd[$header]['element_type'],'text')!==false ||
+                            strpos($dd[$header]['element_validation_type'],'date')!==false
+                        )) {
                         $phi_cols[$index]=$header;
                     }
                 }
@@ -654,7 +672,7 @@ class Export
 
         // record count feature - return this every time the end-user interacts with a button
         // not just when they click the "count" button in the filter panel
-    
+
         $sql = "select count(distinct rdm.record) as row_count " ;
         $sql = $this->generateWhereClauseFromFilters($json, $project_id, $valSel, $sql);
 
@@ -663,7 +681,7 @@ class Export
         $row = db_fetch_assoc($result1);
 
         $result["count"] = $row["row_count"];
-        
+
         // if the user is asking for just counts, return. Otherwise they are asking for data , so carry on
         if ($json->record_count === 'true') {
             return $result;
@@ -709,7 +727,7 @@ class Export
         if (strlen(trim($sql)) > 0) {
             // actually execute the sql - this is where the magic happens!
             $rptdata = db_query($sql);
-            
+
             $result["status"] = 1; // when status = 0 the client will display the error message
             if (strlen(db_error()) > 0) {
                 $dberr = db_error();
@@ -870,11 +888,11 @@ class Export
         if ($showLabel) {
             $lovMeta = $this->instrumentMetadata->getValue($field . '@lov');
         }
-        
+
         if ($this->isCheckbox($field)) {
             $lovstr = $this->cbLov($field);
             $lov = explode("\\n", $lovstr);
-            
+
             for ($i = 0; $i < count($lov); ++$i) {
                 $found = false;
                 // now look in loSetValues for the index
