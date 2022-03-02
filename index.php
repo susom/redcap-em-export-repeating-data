@@ -86,7 +86,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 <div class="col-md-3  col-sm-3 cardinal emphatic header nowrap text-left">
                     <!--                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>-->
                     <span>
-                            Saved Reports:
+                            Load Report
                             <select id="saved-reports" onchange="loadSavedReport()">
                             <option value="">Select a Report</option>
                             <?php
