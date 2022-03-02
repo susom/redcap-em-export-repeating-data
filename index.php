@@ -80,7 +80,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-left">
                     <button type="button" onclick="saveExportJson()" id="save_export_json"
                             class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"><i
-                                class="fas fa-file-download"></i> Save Settings
+                                class="fas fa-file-download"></i> Save Report
                     </button>
                 </div>
                 <div class="col-md-3  col-sm-3 cardinal emphatic header nowrap text-left">
