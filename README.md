@@ -57,11 +57,11 @@ Once you are satisfied with the data returned in the preview, click “Export Da
 As with REDCap’s built in reporting, you have the option of specifying whether you want the raw (coded) data, or the data labels.
 
 
-### I. Save Settings.
-When you go to the trouble of creating a complex report, it can be handy to save all your settings to re-run the report at a later date. To save all your settings in order to restore them later, click “Save Settings”. As with data export, the file name will reflect what you typed into the Report Name field. Saved reports are visible to all users of the project.
+### I. Save Report.
+When you go to the trouble of creating a complex report, it can be handy to save all your report settings to re-run the report at a later date. To save all your settings in order to restore them later, click “Save Report”. As with data export, the file name will reflect what you typed into the Report Name field. Saved reports are visible to all users of the project.
 
 
-### J. Load Settings.
+### J. Load Saved Report.
 To load a saved report, select the desired report from the dropdown. This will replace all current settings with those from the saved report. Use the companion EM "Manage Saved Reports" to delete  saved reports that are no longer needed. 
 
 ## Reporting on multiple forms
