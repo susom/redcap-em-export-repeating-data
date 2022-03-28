@@ -1,5 +1,15 @@
 $(function () {
 
+    // tie the two report name fields together so any input typed into one is reflected in the other
+    var $src = $('#report_name'),
+        $dst = $('#report_name_modal');
+    $src.on('input', function () {
+        $dst.val($src.val());
+    });
+    $dst.on('input', function () {
+        $src.val($dst.val());
+    });
+
     var struct = {};
     var nAjaxSuccesses = 0;
     // launch a callback to the server to render the javascript used
@@ -272,8 +282,12 @@ function clearError() {
 }
 
 function showError(message) {
+    showMsg(message, "alert alert-danger mt-5")
+}
+
+function showMsg(message, clasz) {
     $( "#datatable" ).hide();
-    $("#data-error-message").replaceWith('<div id="data-error-message"  class="alert alert-danger mt-5" >' + message + '</div>');
+    $("#data-error-message").replaceWith('<div id="data-error-message"  class="' +clasz+'" >' + message + '</div>');
     $( "#data-error" ).show();
 }
 
@@ -329,17 +343,21 @@ function saveExportJson() {
                 var $el = $("#saved-reports");
                 $el.empty(); // remove old options
                 $el.append($("<option></option>")
-                    .attr("value", '').text('Select a Report'));
+                    .attr("value", '').text('Select Report'));
                 $.each(JSON.parse(response.reports), function (key, value) {
                     $el.append($("<option></option>")
                         .attr("value", JSON.stringify(value)).text(key));
                 });
+                showMsg("Report settings saved.\n\nChoose '"+json.reportname+"' from 'Select Report' to restore.\n\nYou can delete unused saved reports\nwith the 'Manage Saved Reports' EM.",
+                    "info alert-info p-3 mt-5");
+                setTimeout(function(){
+                    clearError();
+                }, 6000);
             }
-
         },
         error: function (request, error) {
             $("#ui-loading").hide();
-            showError("STARTUP Server Error: " + JSON.stringify(error));
+            showError("Server Error: " + JSON.stringify(error));
             // console.log(request);
             console.log(error);
         }
