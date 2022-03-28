@@ -32,7 +32,7 @@ Optionally drag a field from the left hand side and drop it into this box to sta
 <img src="./documentation/assets/redug_3.png" width="800"/>
 
 ### D. Record count.
-This feature allows you to count the distinct records in your REDCap rather than patients in the clinical dataset. When you are satisfied with your filter settings, click the “count” button in the upper right corner to trigger a database query that will return the number of matching records.  Note that this is very likely a different number than the final number of rows returned in your data report; this count is of the distinct number of matching records. If you have repeating data associated with these records, the number of rows in the data report is likely to be much larger.
+This feature allows you to count the distinct records in your REDCap. When you are satisfied with your filter settings, click the “count” button in the upper right corner to trigger a database query that will return the number of matching records.  Note that this is very likely a different number than the final number of rows returned in your data report; this count is of the distinct number of matching records. If you have repeating data associated with these records, the number of rows in the data report is likely to be much larger.
 
 
 ### E. Report columns.
@@ -58,11 +58,11 @@ As with REDCap’s built in reporting, you have the option of specifying whether
 
 
 ### I. Save Settings.
-When you go to the trouble of creating a complex report, it can be handy to save all your settings to re-run the report at a later date. To export all your settings in a format that can be used to restore them later, click “Save Settings”. As with data export, the file name will reflect what you typed into the Report Name field. The file type is .json.
+When you go to the trouble of creating a complex report, it can be handy to save all your settings to re-run the report at a later date. To save all your settings in order to restore them later, click “Save Settings”. As with data export, the file name will reflect what you typed into the Report Name field. Saved reports are visible to all users of the project.
 
 
 ### J. Load Settings.
-To load a saved .json file, click this button, then drop the saved .json into the drop area that pops up.
+To load a saved report, select the desired report from the dropdown. This will replace all current settings with those from the saved report. Use the companion EM "Manage Saved Reports" to delete  saved reports that are no longer needed. 
 
 ## Reporting on multiple forms
 Reporting on non-repeating forms works in much the same way as built-in REDCap reporting. The true power of this EM is how it reports on data in projects with multiple repeating forms.
@@ -224,4 +224,4 @@ previewing the data a limit clause is added to the very end.
 the entire SQL statement allows the end user to use filters in conjunction with date proximity
 without then unexpectedly losing rows of data from the primary repeating form.
 
-Last Updated: 01/14/2021 11:45am
+Last Updated: 03/28/2022 11:02am

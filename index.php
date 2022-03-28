@@ -53,7 +53,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
         <div class="row">
             <div class="projhdr">
                 <i class="fas fa-download"></i>
-                Review / Export Data
+                Review / Export Repeating Data
             </div>
         </div>
 
@@ -86,7 +86,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 <!--                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>-->
                 <span>
                             <select id="saved-reports" onchange="loadSavedReport()">
-                            <option value="">Select a Report</option>
+                            <option value="">Load Saved Report</option>
                             <?php
                             $reports = json_decode(str_replace("\\n", "", $module->getProjectSetting('saved-reports')), true);
                             foreach ($reports as $name => $report) {

@@ -37,19 +37,14 @@
     ],
     "project": [
       {
-        "name": "Review / Export Data",
-        "icon": "report",
+        "name": "Review / Export Repeating Data",
+        "icon": "table",
         "url": "index.php"
       },
-      {
-        "name": "Download Processed Reports",
-        "icon": "report",
-        "url": "display.php",
-        "show-header-and-footer": true
-      },
+
       {
         "name": "Manage Saved Reports",
-        "icon": "report",
+        "icon": "table_gear",
         "url": "manage.php",
         "show-header-and-footer": true
       }
