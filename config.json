@@ -1,13 +1,10 @@
 {
   "name": "ExportRepeatingData",
-
-  "namespace":"Stanford\\ExportRepeatingData",
-
+  "namespace": "Stanford\\ExportRepeatingData",
   "description": "A module for exporting repeating forms data",
-
+  "framework-version": 9,
   "versions": [
   ],
-
   "authors": [
     {
       "name": "Susan Weber",

@@ -13,7 +13,14 @@ use Exception;
 class Export
 {
 
+    /**
+     * @var \Project
+     */
     private $Proj;
+
+    /**
+     * @var InstrumentMetadata
+     */
     private $instrumentMetadata;
     private $tempFileConfig;
     private $tempFileDate;
@@ -85,21 +92,23 @@ class Export
         }
     }
 
-    function applyUserExportRights($result) {
+    function applyUserExportRights($result)
+    {
         global $module;
         //this doesn't work $user=$module->getUser();
         //this doesn't work either  $module->framework->getUser(USERID)
-        $export_instr = $module->getUserRights()['data_export_instruments'];
+//        $export_instr = $module->getUserRights()['data_export_instruments'];
+        $export_instr = $module->framework->getRights(USERID)['data_export_instruments'];
         $export_rights = [];
         preg_match_all('/\[([^\]]*)\]/', $export_instr, $export_rights);
         $rights = [];
         foreach ($export_rights[1] as $export_right) {
-            $split = explode(',',$export_right);
-            $rights[$split[0]] =  $split[1];
+            $split = explode(',', $export_right);
+            $rights[$split[0]] = $split[1];
         }
         //$module->emDebug("Rights SPLIT :" . print_r($rights, TRUE));
 
-        if (empty($rights) || (count(array_unique($rights))==1 && end($rights)==='1')) {
+        if (empty($rights) || (count(array_unique($rights)) == 1 && end($rights) === '1')) {
             // user is superuser or has phi access to all forms
             return $result;
         } else if (count(array_unique($rights))==1 && end($rights)==='0') {

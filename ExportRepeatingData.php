@@ -24,14 +24,23 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 {
     use emLoggerTrait;
 
+    /**
+     * @var \Project
+     */
     private $project;
 
+    /**
+     * @var InstrumentMetadata
+     */
     private $instrumentMetadata;
 
     private $dataDictionary = array();
 
     private $export;
 
+    /**
+     * @var ClientMetadata
+     */
     private $clientMetadata;
 
     private $pathPrefix;
@@ -51,10 +60,11 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
                 $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-                $this->userRights = REDCap::getUserRights(USERID)[USERID];
+//                $this->userRights = REDCap::getUserRights(USERID)[USERID];
+                $this->userRights = $this->framework->getRights(USERID);
                 $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
                 $this->setDataDictionary($dataDictionary);
-                $referer  = $_SERVER['HTTP_REFERER'];
+                $referer = $_SERVER['HTTP_REFERER'];
                 $indexOf4thslash = $this->strposX($referer, "/", 4);
                 $this->pathPrefix = substr($referer, 0, $indexOf4thslash);
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
