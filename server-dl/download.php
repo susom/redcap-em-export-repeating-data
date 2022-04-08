@@ -7,8 +7,7 @@ try {
     /**
      * @psalm-taint-escape html
      */
-    $file = header('Location: ' . $_REQUEST['file']);
-    $file = filter_var($file, FILTER_SANITIZE_STRING);
+    $file = filter_var($_REQUEST['file'], FILTER_SANITIZE_STRING);
     if (file_exists($file)) {
         $name = explode("/", $file);
         $name = end($name);

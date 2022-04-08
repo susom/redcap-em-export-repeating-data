@@ -55,7 +55,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         try {
-            $pid =  header('Location: ' . $_GET['pid']);
+            $pid = filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT);
             if (isset($pid)) {
 
                 $this->setProject(new \Project(filter_var($pid, FILTER_SANITIZE_NUMBER_INT)));
