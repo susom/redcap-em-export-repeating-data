@@ -24,7 +24,7 @@ $files = $module->processFiles();
                     <tr>
                         <td><?php echo $file['path'] ?></td>
                         <td><a target="_blank"
-                               href="<?php echo $module->getUrl("server/download.php") . '&file=' . $file['path'] ?>">Download</a>
+                               href="<?php echo $module->getUrl("server-dl/download.php") . '&file=' . $file['path'] ?>">Download</a>
                         </td>
                     </tr>
                     <?php

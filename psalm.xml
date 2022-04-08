@@ -1,0 +1,10 @@
+<psalm>
+<projectFiles>
+<directory name="."/>
+</projectFiles>
+ <taintAnalysis>
+        <ignoreFiles>
+            <directory name="server-dl"/>
+        </ignoreFiles>
+    </taintAnalysis>
+</psalm>
