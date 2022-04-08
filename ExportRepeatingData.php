@@ -55,12 +55,11 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         try {
+            $pid =  header('Location: ' . $_GET['pid']);
+            if (isset($pid)) {
 
-            if (isset($_GET['pid'])) {
-
-                $this->setProject(new \Project(filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
+                $this->setProject(new \Project(filter_var($pid, FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-//                $this->userRights = REDCap::getUserRights(USERID)[USERID];
                 $this->userRights = $this->framework->getRights(USERID);
                 $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
                 $this->setDataDictionary($dataDictionary);

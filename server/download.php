@@ -4,7 +4,9 @@
 
 
 try {
-    $file = filter_var($_GET['file'], FILTER_SANITIZE_STRING);
+
+    $file = header('Location: ' . $_REQUEST['file']);
+    $file = filter_var($file, FILTER_SANITIZE_STRING);
     if (file_exists($file)) {
         $name = explode("/", $file);
         $name = end($name);
