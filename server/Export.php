@@ -634,7 +634,15 @@ class Export
                     $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
                         " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
 
-                    $filterstr = str_replace( $filter->field, $filter_val_sel, $filterstr);
+                    // the str_replace below expects $filterstr to take the form .$filter->field = user supplied value
+                    // its purpose is to replace the filter->field name, which is a placeholder, with the case statement
+                    if ($this->startsWith($filterstr, 'str_to_date')) {
+                        // appending the comma helps localize the placeholder field name
+                        // without it the string is garbled when the variable name is 'date', which is perfectly legal
+                        $filterstr = str_replace($filter->field.',', $valSel.',', $filterstr);
+                    } else {
+                        $filterstr = str_replace($filter->field, $filter_val_sel, $filterstr);
+                    }
                     $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name "
                         . $this->getDagFilter('rd', $project_id)
                         . " and rd.project_id = " . $project_id
@@ -797,6 +805,7 @@ class Export
     // this is where the Json for filters gets converted into SQL
     function filter_string($filter)
     {
+        global $module;
         $col =  $filter->field;
         $val = db_escape($filter->param);
         $dt = "string";
@@ -814,9 +823,13 @@ class Export
             $val = "str_to_date('" . $val . "', '%Y-%m-%d')";
             $dt = "date";
         }
+        $module->emDebug("validation is ".$filter->validation);
+        if ($filter->validation == "int" || $filter->validation == "number" || $filter->validation == "float" ) {
+            $val = "cast($val as float)";
+            $dt = "float";
 
-        if (($filter->validation == "integer" || $filter->validation == "number"))
-            $dt = "number";
+            $module->emDebug("val is ".$val);
+        }
 
         if ($filter->operator == "E")
             $filterstr = ($dt == "string") ? ($col . " = '" . $val."'") : ($col . " = " . $val);
@@ -1065,7 +1078,7 @@ class Export
     // results are aggregated and returned as a single SQL fragment
     function handleFilters($filters, $formName, $prefix, $applyFiltersToData)
     {
-
+        global $module;
         if (! $applyFiltersToData) {
             return "";
         }
@@ -1087,7 +1100,7 @@ class Export
         } else {
             $filtersql = "";
         }
-
+        $module->emDebug("in handleFilters ".$filtersql);
         return $filtersql;
 
     }

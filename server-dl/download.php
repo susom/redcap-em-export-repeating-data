@@ -4,10 +4,9 @@
 
 
 try {
-    /**
-     * @psalm-taint-escape html
-     */
-    $file = filter_var($_REQUEST['file'], FILTER_SANITIZE_STRING);
+
+    $file= filter_var($_GET['file'],FILTER_SANITIZE_STRING);
+
     if (file_exists($file)) {
         $name = explode("/", $file);
         $name = end($name);

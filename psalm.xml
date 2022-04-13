@@ -2,7 +2,7 @@
 <projectFiles>
 <directory name="."/>
 </projectFiles>
- <taintAnalysis>
+    <taintAnalysis>
         <ignoreFiles>
             <directory name="server-dl"/>
         </ignoreFiles>
