@@ -825,7 +825,7 @@ class Export
         }
         $module->emDebug("validation is ".$filter->validation);
         if ($filter->validation == "int" || $filter->validation == "number" || $filter->validation == "float" ) {
-            $val = "cast($val as float)";
+            $val = "cast($val as double)"; // MariaDB does not yet understand float
             $dt = "float";
 
             $module->emDebug("val is ".$val);
