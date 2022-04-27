@@ -379,6 +379,9 @@ class Export
                                 foreach ($json->forms as $instrument_t => $form_t) {
                                     if ($instrument_t == $instrument) {
                                         $meta1 = $this->instrumentMetadata->isRepeating($parentPrimaryJoinInstrument);
+                                        if (is_null($newjson->forms[$parentPrimaryJoinInstrument])) {
+                                            $newjson->forms[$parentPrimaryJoinInstrument] = (object) [];
+                                        }
                                         $newjson->forms[$parentPrimaryJoinInstrument]->form_name = $parentPrimaryJoinInstrument;
                                         $newjson->forms[$parentPrimaryJoinInstrument]->cardinality = $meta1['cardinality'];
                                         $newjson->forms[$parentPrimaryJoinInstrument]->added_by_filter = true;
@@ -438,14 +441,6 @@ class Export
         $json->applyFiltersToData = $json_inp->applyFiltersToData === 'true';
 //        $module->emDebug('final json ' . print_r($json, true));
         return $json;
-    }
-
-    function array_unshift_assoc(&$arr, $key, $val)
-    {
-        $arr = array_reverse($arr, true);
-        $arr[$key] = $val;
-        $arr = array_reverse($arr, true);
-        return $arr;
     }
 
     // if the filter includes a min or max, and the form has a parent,
@@ -634,51 +629,6 @@ class Export
 
     }
 
-    // used when counting the number of patients (user clicked 'count' in filter panel)
-    function generateWhereClauseFromFilters($json, $project_id, $valSel, $selectClause) {
-        global $module;
-        $sql = $selectClause . " FROM redcap_data rdm where rdm.project_id = " . $project_id . " AND ";
-        if (is_array($json->filters) || is_object($json->filters)) {
-            foreach ($json->filters as $filterIdx => $filter) {
-                // for now ignore max and min in doing counts.  will need to think about how to do this in combo
-                // with other parameters
-                if ($filter->operator != 'MAX' && $filter->operator != 'MIN') {
-
-                    $filterstr = $this->filter_string($filter);
-
-                    $filter_val_sel = "(case when rd.field_name = '" . $filter->field . "' and (rm.element_type = 'calc' or coalesce(rm.element_enum, '') = '') then rd.value " .
-                        " when rd.field_name = '" . $filter->field . "' then $valSel end) " ;
-
-                    // the str_replace below expects $filterstr to take the form .$filter->field = user supplied value
-                    // its purpose is to replace the filter->field name, which is a placeholder, with the case statement
-                    if ($this->startsWith($filterstr, 'str_to_date')) {
-                        // appending the comma helps localize the placeholder field name
-                        // without it the string is garbled when the variable name is 'date', which is perfectly legal
-                        $filterstr = str_replace($filter->field.',', $valSel.',', $filterstr);
-                    } else {
-                        $filterstr = str_replace($filter->field, $filter_val_sel, $filterstr);
-                    }
-                    $sql = $sql . " rdm.record in (select record from redcap_data rd, redcap_metadata rm where rd.project_id = rm.project_id and rd.field_name = rm.field_name "
-                        . $this->getDagFilter('rd', $project_id)
-                        . " and rd.project_id = " . $project_id
-                        . " and rd.field_name = '" . $filter->field
-                        . "' and " . $filterstr . ") " . " " . $filter->boolean . " ";
-
-                }
-            }
-        }
-
-        if (substr($sql, -4) == "AND ")
-            $sql = substr($sql, 0, strlen($sql) - 4);
-
-        if (substr($sql, -3) == "OR ")
-            $sql = substr($sql, 0, strlen($sql) - 3);
-
-        $module->emDebug("SQL for COUNT : " . $sql);
-
-        return $sql;
-    }
-
     /**
      * This is the function that takes the Json coming from the client and converts it into SQL,
      * executes the SQL, and returns the restuls to the client
@@ -698,26 +648,6 @@ class Export
             $rowLimit = 200;
         }
 
-        $valSel = "rd.value";
-
-        $project_id = $this->Proj->project_id;
-
-        // record count feature - return this every time the end-user interacts with a button
-        // not just when they click the "count" button in the filter panel
-
-        $sql = "select count(distinct rdm.record) as row_count " ;
-        $sql = $this->generateWhereClauseFromFilters($json, $project_id, $valSel, $sql);
-
-        $result1 = db_query($sql);
-
-        $row = db_fetch_assoc($result1);
-
-        $result["count"] = $row["row_count"];
-
-        // if the user is asking for just counts, return. Otherwise they are asking for data , so carry on
-        if ($json->record_count === 'true') {
-            return $result;
-        }
         // Keep the order of the fields as specified by the user
         $select_fields = array();  // Fields which will be returned to the caller
 
@@ -739,6 +669,30 @@ class Export
         define("BASIC", 0);
         define("TEMP_TABLE_DEFN", 1);
         define("TEMP_TABLE_USE", 2);
+
+        // first get the counts, as these are always needed
+        if ($json->record_count === 'true' && empty($json->forms)) {
+            $countSql = "select count(distinct record ) as row_count from  redcap_data rd where project_id=". $this->Proj->project_id;
+        } else {
+            // the controller ensures that json->forms will only ever be empty when record_count is true
+            // this else triggers both when the user is clicking the count button but has at least one form
+            // either as filters or as columns
+            foreach ($json->forms as $formName => $spec) {
+                // populate $formName with the first key in the object
+                break;
+            }
+            $countSql = "select count( distinct record_id) as row_count from (".$this->getSqlMultiPass($json, $this->Proj->project_id, BASIC).")  t";
+            $countSql = str_replace("select distinct  FROM ", "select distinct ".$formName."_a.record_id FROM ", $countSql);
+        }
+//        $module->emDebug($countSql);
+        $resultCnt = db_query($countSql);
+        $row = db_fetch_assoc($resultCnt);
+        $result["count"] = $row["row_count"];
+        // if the user is asking for just counts, return. Otherwise they are asking for data , so carry on
+        if ($json->record_count === 'true') {
+            return $result;
+        }
+
         // generate the SQL
         if ($json->applyFiltersToData) {
             $sql = $this->getSqlMultiPass($json, $this->Proj->project_id, BASIC);
@@ -747,8 +701,8 @@ class Export
             db_query($sql1) or die ("Sql error : ".db_error());
             $module->emDebug($sql1);
             $sql = $this->getSqlMultiPass($json, $this->Proj->project_id, TEMP_TABLE_USE); // select w/ join on temporary table
-
         }
+
         // append a limit clause if they are asking for a preview rather than a data export
         if ("true" == $json->preview && strlen(trim($sql)) > 0) {
             $sql = $sql . " LIMIT " . $rowLimit;
