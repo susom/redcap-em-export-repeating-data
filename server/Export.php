@@ -232,8 +232,10 @@ class Export
                 // if the instrument for this column doesn't exist in final json, create one
                 if (!isset($json->forms[$instrument])) {
 
-                    $json->forms[$instrument] = json_decode('{ "fieldsToDisplay" : [] }');
-                    $json->forms[$instrument] = json_decode('{ "fieldsToJoin" : [] }');
+                    $json->forms[$instrument] = (object) [
+                        'fieldsToDisplay' => array(),
+                        'fieldsToJoin' => array(),
+                    ];
                     $json->forms[$instrument]->form_name = $column->instrument;
 
                     $meta = $this->instrumentMetadata->isRepeating($column->instrument);
@@ -253,22 +255,28 @@ class Export
 
                         // Following is the case where the parent form comes later than the child form
                         if (empty($meta['foreign_key_ref'])) {
-                            $childform = $module->hasChild($column->instrument) ;
+                            $childform = $module->hasChild($column->instrument);
                             // $childform is a list of possible matches. Check to see if any of them match the current primary
-                            if (strpos($childform, $primaryJoinInstrument)  !== false) {
+                            if (strpos($childform, $primaryJoinInstrument) !== false) {
                                 $childform = $primaryJoinInstrument;
                             }
           //                  $module->emDebug('childForm ' . $childform . '  instrument '. $instrument . ' $primaryJoinInstrument ' . $primaryJoinInstrument);
                             if (empty($childform)) {
-                                throw new Exception("No parent/child link defined for " . $column->instrument) ;
+                                throw new Exception("No parent/child link defined for " . $column->instrument);
                             }
                             $meta = $this->instrumentMetadata->isRepeating($childform);
 //                            $json->forms[$instrument]->join_key_field =  'instance' ;
                             $json->forms[$instrument]->join_key_field = $meta['foreign_key_field']; // change 1 for case where parent comes first
-                            $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'] ;
-                            $json->forms[$instrument]->foreign_key_ref = $childform ;
-                            if (! in_array($meta['foreign_key_field'] ,$json->forms[$childform]->fieldsToJoin)) { // change 2 for case where parent comes first
+                            $json->forms[$instrument]->foreign_key_field = $meta['foreign_key_field'];
+                            $json->forms[$instrument]->foreign_key_ref = $childform;
+                            if (!in_array($meta['foreign_key_field'], $json->forms[$childform]->fieldsToJoin)) { // change 2 for case where parent comes first
                                 $json->forms[$childform]->fieldsToJoin[] = $meta['foreign_key_field'];
+                                // this next variable is for the hyper-specific case where a child form
+                                // precedes its parent in the column specification widget, e.g. specific med
+                                // first, then visit (where visits contain specific meds)
+                                // in this case, the join key required is a reference to the parent, not the child,
+                                // since in this case the child is the primary
+                                $json->forms[$instrument]->foreign_key_ref_special_case = $instrument;
                             }
                         } else {
                             // check if the foreign_key_ref is present in the list of fields to join ; add if missing
@@ -282,11 +290,11 @@ class Export
 
                         $json->forms[$instrument]->join_type = 'date_proximity';
                         $json->forms[$instrument]->lower_bound = $json_inp->cardinality->$instrument->lower_bound;
-                        if (! $json->forms[$instrument]->lower_bound) {
+                        if (!$json->forms[$instrument]->lower_bound) {
                             $json->forms[$instrument]->lower_bound = 999;
                         }
                         $json->forms[$instrument]->upper_bound = $json_inp->cardinality->$instrument->upper_bound;
-                        if (! $json->forms[$instrument]->upper_bound) {
+                        if (!$json->forms[$instrument]->upper_bound) {
                             $json->forms[$instrument]->upper_bound = 999;
                         }
                         $json->forms[$instrument]->primary_date_field = $json_inp->cardinality->$instrument->primary_date;
@@ -294,58 +302,58 @@ class Export
                         //  repeating form (rhcath)
                         //  pivot - but has no principal date - but parent has principal date (workingdx)
                         //  in this case the primary date will be from parent
-                        //  detect this signature by comparing form of the principal date field. If it is not same form,
+                        //  detect this scenario by comparing form of the principal date field. If it is not same form,
                         //  then it comes into this section
                         if ($this->getFormForField($json_inp->cardinality->$instrument->primary_date) != $instrument) {
                             // In this case, insert the parent right before the current instrument
                             // I am not sure how to do this in an efficient way in php - i am just creating another
                             // object with newly inserted form.
                             $newjson = json_decode('{ "forms" : []}');
-                            $newjson->raw_or_label = $json->raw_or_label ;
-                            $newjson->record_count = $json->record_count ;
-                            $newjson->reportname = $json->reportname ;
-                            $newjson->preview = $json->preview ;
-                            $newjson->project = $json->project ;
+                            $newjson->raw_or_label = $json->raw_or_label;
+                            $newjson->record_count = $json->record_count;
+                            $newjson->reportname = $json->reportname;
+                            $newjson->preview = $json->preview;
+                            $newjson->project = $json->project;
 
                             foreach ($json->forms as $instrument_t => $form_t) {
                                 if ($instrument_t == $instrument) {
                                     // Transfer the current pivot info to the parent/newly created form
-                                    $parentInstrument = $this->getFormForField($json_inp->cardinality->$instrument->primary_date) ;
+                                    $parentInstrument = $this->getFormForField($json_inp->cardinality->$instrument->primary_date);
                                     $meta1 = $this->instrumentMetadata->isRepeating($parentInstrument);
-                                    $newjson->forms[$parentInstrument]->form_name = $parentInstrument ;
+                                    $newjson->forms[$parentInstrument]->form_name = $parentInstrument;
                                     $newjson->forms[$parentInstrument]->cardinality = $meta1['cardinality'];
-                                    $newjson->forms[$parentInstrument]->lower_bound = $this->nvl($json_inp->cardinality->$instrument->lower_bound,999);
-                                    $newjson->forms[$parentInstrument]->upper_bound =  $this->nvl($json_inp->cardinality->$instrument->upper_bound,999);
-                                    $newjson->forms[$parentInstrument]->added_by_filter = true ;
+                                    $newjson->forms[$parentInstrument]->lower_bound = $this->nvl($json_inp->cardinality->$instrument->lower_bound, 999);
+                                    $newjson->forms[$parentInstrument]->upper_bound = $this->nvl($json_inp->cardinality->$instrument->upper_bound, 999);
+                                    $newjson->forms[$parentInstrument]->added_by_filter = true;
                                     if (isset($meta1['principal_date'])) {
                                         $newjson->forms[$parentInstrument]->fieldsToJoin[] = $meta1['principal_date'];
                                         $newjson->forms[$parentInstrument]->primary_date_field = $meta1['principal_date'];
                                     }
                                     // primaryJoinInstrument is the child and $parentPrimaryJoinField is the parent
-                                    $childform = $primaryJoinInstrument ;
+                                    $childform = $primaryJoinInstrument;
                                     $meta1 = $this->instrumentMetadata->isRepeating($childform);
-                                    $newjson->forms[$parentInstrument]->join_type = 'date_proximity' ;
+                                    $newjson->forms[$parentInstrument]->join_type = 'date_proximity';
                                     $newjson->forms[$parentInstrument]->foreign_key_field = $primaryJoinField; // $meta1['foreign_key_field'] ;
-                                    $newjson->forms[$parentInstrument]->foreign_key_ref = $childform ;
+                                    $newjson->forms[$parentInstrument]->foreign_key_ref = $childform;
 
                                     // change current instrument from date pivot to instance (child of newly inserted parent)
-                                    $form_t->join_type = 'instance' ;
-                                    $form_t->join_key_field = $meta['foreign_key_field'] ;
-                                    $form_t->foreign_key_ref = $parentInstrument ;
-                                    $form_t->foreign_key_field = 'instance' ;
+                                    $form_t->join_type = 'instance';
+                                    $form_t->join_key_field = $meta['foreign_key_field'];
+                                    $form_t->foreign_key_ref = $parentInstrument;
+                                    $form_t->foreign_key_field = 'instance';
 
                                     // remove the variables related to the date pivot
-                                    unset($form_t->primary_date_field) ;
-                                    unset($form_t->lower_bound) ;
-                                    unset($form_t->upper_bound) ;
+                                    unset($form_t->primary_date_field);
+                                    unset($form_t->lower_bound);
+                                    unset($form_t->upper_bound);
                                     //$form_t->primary_date_field = '' ;
                                     //$form_t->lower_bound = 0 ;
                                     //$form_t->upper_bound = 0 ;
 
                                 }
-                                $newjson->forms[$instrument_t] = $form_t ;
+                                $newjson->forms[$instrument_t] = $form_t;
                             }
-                            $json = $newjson ;
+                            $json = $newjson;
                             //continue ;// PROBLEMATIC - this was dropping columns from some reports
                         }
 
@@ -363,41 +371,41 @@ class Export
                                 // right before the current element.  Again, the following code is not looking good
                                 // but it works.  Find a better way to insert records just before the current element in php
                                 $newjson = json_decode('{ "forms" : []}');
-                                $newjson->raw_or_label = $json->raw_or_label ;
-                                $newjson->record_count = $json->record_count ;
-                                $newjson->reportname = $json->reportname ;
-                                $newjson->preview = $json->preview ;
-                                $newjson->project = $json->project ;
+                                $newjson->raw_or_label = $json->raw_or_label;
+                                $newjson->record_count = $json->record_count;
+                                $newjson->reportname = $json->reportname;
+                                $newjson->preview = $json->preview;
+                                $newjson->project = $json->project;
                                 foreach ($json->forms as $instrument_t => $form_t) {
                                     if ($instrument_t == $instrument) {
                                         $meta1 = $this->instrumentMetadata->isRepeating($parentPrimaryJoinInstrument);
-                                        $newjson->forms[$parentPrimaryJoinInstrument]->form_name = $parentPrimaryJoinInstrument ;
+                                        $newjson->forms[$parentPrimaryJoinInstrument]->form_name = $parentPrimaryJoinInstrument;
                                         $newjson->forms[$parentPrimaryJoinInstrument]->cardinality = $meta1['cardinality'];
-                                        $newjson->forms[$parentPrimaryJoinInstrument]->added_by_filter = true ;
+                                        $newjson->forms[$parentPrimaryJoinInstrument]->added_by_filter = true;
                                         if (isset($meta1['principal_date'])) {
                                             $newjson->forms[$parentPrimaryJoinInstrument]->fieldsToJoin[] = $meta1['principal_date'];
                                         }
                                         // primaryJoinInstrument is the child and $parentPrimaryJoinField is the parent
-                                        $childform = $primaryJoinInstrument ;
+                                        $childform = $primaryJoinInstrument;
                                         $meta1 = $this->instrumentMetadata->isRepeating($childform);
 //                                        $newjson->forms[$parentPrimaryJoinInstrument]->join_type = 'instance' ;
 //                                        $newjson->forms[$parentPrimaryJoinInstrument]->join_key_field = 'instance' ;
 //                                        $newjson->forms[$parentPrimaryJoinInstrument]->foreign_key_field = $meta1['foreign_key_field'] ;
 //                                        $newjson->forms[$parentPrimaryJoinInstrument]->foreign_key_ref = $childform ;
-                                        $newjson->forms[$parentPrimaryJoinInstrument]->lower_bound = $this->nvl($json_inp->cardinality->$instrument->lower_bound,998);
-                                        $newjson->forms[$parentPrimaryJoinInstrument]->upper_bound =  $this->nvl($json_inp->cardinality->$instrument->upper_bound,998);
+                                        $newjson->forms[$parentPrimaryJoinInstrument]->lower_bound = $this->nvl($json_inp->cardinality->$instrument->lower_bound, 998);
+                                        $newjson->forms[$parentPrimaryJoinInstrument]->upper_bound = $this->nvl($json_inp->cardinality->$instrument->upper_bound, 998);
 
                                     }
-                                    $newjson->forms[$instrument_t] = $form_t ;
+                                    $newjson->forms[$instrument_t] = $form_t;
                                 }
-                                $json = $newjson ;
+                                $json = $newjson;
                             }
                             $json->forms[$instrument]->foreign_key_ref = $parentPrimaryJoinInstrument;
                             $json->forms[$instrument]->foreign_key_field = $parentPrimaryJoinField;
                         } else {
                             // SRINI: This should be an error condition. According to the user guide, first repeating form
                             // should act as the join instrument and it should have the primary date field set.
-                            throw new Exception("Missing @PRINCIPAL_DATE field on the primary repeating instrument  " . $primaryJoinInstrument . ".") ;
+                            throw new Exception("Missing @PRINCIPAL_DATE field on the primary repeating instrument  " . $primaryJoinInstrument . ".");
                             /*
                             // if there's no join field then need to join with this form's parent
                             $meta = $this->instrumentMetadata->isRepeating($primaryJoinInstrument);
@@ -474,6 +482,9 @@ class Export
 //                    $f->foreign_key_field = 'instance';
 //                    $filter->parent_form = $meta['foreign_key_ref'];
                     // check if the foreign_key_ref is one of the forms
+                    if (is_null( $f->fieldsToJoin)) {
+                        $f->fieldsToJoin = array();
+                    }
                     if ( !in_array($f->join_key_field, $f->fieldsToJoin)) {
                         $f->fieldsToJoin[] = $f->join_key_field ;
                     }
@@ -504,6 +515,10 @@ class Export
 
     function add_form_to_spec($newForm, $json)
     {
+        // required by PHP 8 when counting filtered records
+        if ( is_null($json->forms[$newForm])) {
+            $json->forms[$newForm] = (object)null;
+        }
         $meta = $this->instrumentMetadata->isRepeating($newForm);
         $json->forms[$newForm]->form_name = $newForm;
         $json->forms[$newForm]->cardinality = $meta['cardinality'];
@@ -575,25 +590,25 @@ class Export
         // $expected == 'Result Json'
         // Test 1  - demographics with only record_id ticked
         $json = '{"forms":{"demographics":{"fieldsToJoin":["record_id"],"form_name":"demographics","cardinality":"singleton","join_type":"singleton","fieldsToDisplay":["record_id"]}},"raw_or_label":"label","preview":"true","record_count":"false","filters":null}';
-        $expected = '{"status":1,"t1":{"headers":["record_id"],"data":[["1"],["2"]]}}';
+        $expected = '{"count":"2","status":1,"t1":{"headers":["record_id"],"data":[["1"],["2"]]}}';
         $this->testResult(1, $json, $expected);
         // Test 2 - demographics with sex ticked
         $json = '{"forms":{"demographics":{"fieldsToJoin":["sex"],"form_name":"demographics","cardinality":"singleton","join_type":"singleton","fieldsToDisplay":["sex"]}},"raw_or_label":"label","preview":"true","record_count":"false","record_id":"record_id","filters":null}';
-        $expected = '{"status":1,"t1":{"headers":["record_id","sex"],"data":[["1","Female"],["2","Male"]]}}';
+        $expected = '{"count":"2","status":1,"t1":{"headers":["record_id","sex"],"data":[["1","Female"],["2","Male"]]}}';
         $this->testResult(2, $json, $expected);
         // Test 3 - demographics with sex ticked filtered by visit exists
         $json = '{"forms":{"demographics":{"fieldsToJoin":["sex"],"form_name":"demographics","cardinality":"singleton","join_type":"singleton","fieldsToDisplay":["sex"]},"visit":{"form_name":"visit","cardinality":"repeating","fieldsToJoin":["visit_date"],"added_by_filter":true}},"raw_or_label":"label","preview":"true","record_count":"false","record_id":"record_id","filters":[{"field":"visit_date","operator":"EXISTS","boolean":"AND","instrument":"visit","parent_form":"demographics"}]}';
-        $expected = '{"status":1,"t1":{"headers":["record_id","sex"],"data":[["1","Female"]]}}';
+        $expected = '{"count":"2","status":1,"t1":{"headers":["record_id","sex"],"data":[["1","Female"],["2","Male"]]}}';
         $this->testResult(3, $json, $expected);
         // Test 4 - demographics: sex + patientdata: current_clinic + rhcath: date + visit: date w/ visit_date=latest AND whoDx=3 AND clinic=Chest
         $json = '{"forms":{"demographics":{"fieldsToJoin":["sex"],"form_name":"demographics","cardinality":"singleton","join_type":"singleton","fieldsToDisplay":["sex"]},"patientdata":{"fieldsToJoin":["currentclinic"],"form_name":"patientdata","cardinality":"singleton","join_type":"singleton","fieldsToDisplay":["currentclinic"]},"visit":{"fieldsToJoin":["visit_date"],"form_name":"visit","cardinality":"repeating","join_type":"repeating-primary","fieldsToDisplay":["visit_date"]},"rhcath":{"fieldsToJoin":["rhcathdate"],"form_name":"rhcath","cardinality":"repeating","join_type":"date_proximity","lower_bound":999,"upper_bound":999,"primary_date_field":"rhcathdate","foreign_key_ref":"visit","foreign_key_field":"visit_date","fieldsToDisplay":["rhcathdate"]},"workingandwhodx":{"form_name":"workingandwhodx","cardinality":"repeating","added_by_filter":true,"fieldsToJoin":[null]}},"raw_or_label":"label","preview":"true","record_count":"false","record_id":"record_id","filters":[{"field":"visit_date","operator":"MAX","boolean":"AND","instrument":"visit","parent_form":"demographics"},{"field":"whodx","operator":"E","validation":"","param":"3","boolean":"AND","instrument":"workingandwhodx"},{"field":"clinic","operator":"E","validation":"","param":"Chest","boolean":"AND","instrument":"patientdata"}]}';
-        $expected = '{"status":1,"t1":{"headers":["record_id","sex","currentclinic","visit_date","rhcathdate"],"data":[["1","Female","Chest","2020-12-08","2020-12-04"]]}}';
+        $expected = '{"count":"1","status":1,"t1":{"headers":["record_id","sex","currentclinic","visit_date","rhcathdate"],"data":[["1","Female","Chest","2020-12-08","2020-12-04"]]}}';
         $this->testResult(4, $json, $expected);
         // Test 5 - visit followed by specificmed
         $json = '{"forms":{"visit":{"fieldsToJoin":["visit_date"],"form_name":"visit","cardinality":"repeating","join_type":"repeating-primary","fieldsToDisplay":["visit_date"]},"specificmed":{"fieldsToJoin":["specificmed_visit_id","specific_med"],"form_name":"specificmed","cardinality":"repeating","join_type":"instance","join_key_field":"specificmed_visit_id","foreign_key_field":"instance","foreign_key_ref":"visit","fieldsToDisplay":["specific_med"]}},"raw_or_label":"label","preview":"true","record_count":"false","record_id":"record_id","filters":null}';
         $expected = '{"status":1,"t1":{"headers":["record_id","visit_date","specific_med"],"data":[["1","2020-08-12","Acai berry"],["1","2020-09-12","Carisoprodol"],["1","2020-09-12","Chondroitin"],["1","2020-12-08","Abacavir"],["1","2020-12-08","Baclofen"],["1","2020-12-08","Calcium"]]}}';
         $this->testResult(5, $json, $expected);
-        // Test 6 - specificmed followed by visit
+        // Test 6 - specificmed followed by visit - this is the case where foreign_key_ref_special_case is set and later used
         $json = '{"forms":{"specificmed":{"fieldsToJoin":["specific_med","specificmed_visit_id"],"form_name":"specificmed","cardinality":"repeating","join_type":"repeating-primary","fieldsToDisplay":["specific_med"]},"visit":{"fieldsToJoin":["visit_date"],"form_name":"visit","cardinality":"repeating","join_type":"instance","join_key_field":"specificmed_visit_id","foreign_key_field":"specificmed_visit_id","foreign_key_ref":"specificmed","fieldsToDisplay":["visit_date"]}},"raw_or_label":"label","preview":"true","record_count":"false","record_id":"record_id","filters":null}';
         $expected = '{"status":1,"t1":{"headers":["record_id","specific_med","visit_date"],"data":[["1","Acai berry","2020-08-12"],["1","Acai berry","2020-09-12"],["1","Acai berry","2020-12-08"],["1","Carisoprodol","2020-08-12"],["1","Carisoprodol","2020-09-12"],["1","Carisoprodol","2020-12-08"]]}}';
         $this->testResult(6, $json, $expected);
@@ -1131,6 +1146,11 @@ class Export
     // we use multiple passes in order to separate out changes in table ordering that impact the SQL from
     // table ordering that should be ignored. For example, all fields in singleton (non-repeating)
     // instruments should be inner joined to the primary repeating form.
+    // known issue (too marginal to fix) - when 2 or more singleton forms exist, if you specify variables
+    // from both singleton forms, the second form is used to drive subsequent joins, so if the 2nd form
+    // is less than fully populated, it will trim data from subsequent joins. For example, select sex (demographics)
+    // and current_clinic (patient_data) from PVD will use demographics to select records, left joined with patient_data
+    // then will use patient_data (rather than demographics) as the subsequent join key for further inner joins
     function getSqlMultiPass($json, $pid, $mode)
     {
         global $module;
@@ -1160,6 +1180,10 @@ class Export
             $spec = $json->forms->$formName;
             $selectClause = "$formName"."_a.$recordId, ".$formName."_instance, ";
             $selectClause .= $this->getFields($formName, $spec->fieldsToDisplay, $mode);
+//            if (is_null( $spec->fieldsToJoin)) {
+//                $spec->fieldToJoin = array();
+//            }
+//            the above does not appear to be needed
             $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
             $inlineTable = $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
             foreach ($instances as $childForm) {
@@ -1167,11 +1191,24 @@ class Export
                 if (count($spec->fieldsToDisplay) > 0) {
                     $selectClause .= ", /*1147 */" . $this->getFields($childForm, $spec->fieldsToDisplay, $mode);
                 }
+                // required by a filtered export query (not a count) in PHP 8
+                if (is_null( $spec->fieldsToJoin)) {
+                    $spec->fieldToJoin = array();
+                }
                 $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
                 $inlineTable .= $this->getJoin($childForm, $filters, $json);
                 $inlineTable .= $this->getInlineTableSql($fieldNames, $spec->form_name, $pid, $spec, $filters, $mode);
                 $jk = ($spec->join_key_field == 'instance' ? $spec->form_name . "." . $spec->form_name . "_instance" :  $spec->join_key_field);
-                $fk = $spec->foreign_key_ref;
+
+                // ok, this is super incomprehensible, but it works....
+                // in the weird special case where the child is placed before the parent,
+                // the foreign key for table join purposes is actually the parent
+                // see the special case handling in assembleSpecification
+                if (is_null($spec->foreign_key_ref_special_case)) {
+                    $fk = $spec->foreign_key_ref;
+                } else {
+                    $fk = $spec->foreign_key_ref_special_case;
+                }
                 $inlineTable .= " ON ".$formName."_a.$recordId=$spec->form_name"."_a.$recordId AND /*1*/ $jk = " . $fk . "_instance";
             }
             $inlineTable = "(select  $selectClause  FROM ( $inlineTable ) ) $formName" . "_a" ;
@@ -1237,6 +1274,10 @@ class Export
         }
         // singleton or date_proximity
         $spec= $json->forms->$formName;
+        if (is_null( $spec->fieldsToJoin)) {
+            $spec->fieldsToJoin = array();
+        }
+        // the above is newly required in PHP 8
         $fieldNames = $this->augment($spec->form_name, $spec->fieldsToJoin, $filters);
         if ($spec->join_type == 'date_proximity') {
             if (strlen($innerTableSql) == 0) {
@@ -1272,6 +1313,7 @@ class Export
     // that need to be filtered out of the report returned to the end-user
     function getSelectClause($json, $mode)
     {
+//        global $module;
         $selectClause = "";
         $cntSelectClauses = 0;
         foreach ($json->forms as $formName => $spec) {
@@ -1285,7 +1327,7 @@ class Export
                     array_unshift($fieldsToDisplay, $json->record_id);
                 }
 //                $module->emDebug('$fieldsToDisplay ' . print_r($fieldsToDisplay,TRUE));
-            } else if (count($fieldsToDisplay) > 0) {
+            } else if (!is_null($fieldsToDisplay) && count($fieldsToDisplay) > 0) {
                 $selectClause .= ", /*1175*/";
             }
 
@@ -1338,14 +1380,11 @@ class Export
 
     function augment($formName, $fieldsToJoin, $filters)
     {
-//        global $module;
         foreach ($filters as $spec) {
             if ($spec->instrument == $formName && !in_array($spec->field, $fieldsToJoin)) {
                 $fieldsToJoin[] = $spec->field;
             }
         }
-//        $module->emDebug('filters :' . print_r($filters, TRUE));
-//        $module->emDebug('fieldsToJoin :' . print_r($fieldsToJoin, TRUE));
         return $fieldsToJoin;
     }
 
