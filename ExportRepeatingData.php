@@ -184,61 +184,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     }
 
     /**
-     * @return array
-     */
-    public function getDataDictionaryProp($prop)
-    {
-        return $this->dataDictionary[$prop];
-    }
-    /**
-     * @return string
-     */
-    public function getPatientFilterText()
-    {
-        return $this->patientFilterText;
-    }
-
-    /**
-     * @param string $patientFilterText
-     */
-    public function setPatientFilterText($patientFilterText)
-    {
-        $this->patientFilterText = $patientFilterText;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getCurrentPageNumber()
-    {
-        return $this->currentPageNumber;
-    }
-
-    /**
-     * @param mixed $currentPageNumber
-     */
-    public function setCurrentPageNumber($currentPageNumber)
-    {
-        $this->currentPageNumber = $currentPageNumber;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getPatientFilter()
-    {
-        return $this->patientFilter;
-    }
-
-    /**
-     * @param mixed $patientFilter
-     */
-    public function setPatientFilter($patientFilter)
-    {
-        $this->patientFilter = $patientFilter;
-    }
-
-    /**
      * @return mixed
      */
     public function getEventId()
@@ -439,7 +384,6 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         exit();
     }
 
-
     public function manageReports()
     {
         $action = filter_var($_GET['action'], FILTER_SANITIZE_STRING);
@@ -447,7 +391,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
         if ($action == 'save') {
             $name = filter_var($_GET['report_name'], FILTER_SANITIZE_STRING);
-            $content = $_GET['report_content'];
+            $content = filter_var_array($_GET['report_content'],FILTER_SANITIZE_STRING);
             $reports[$name] = $content;
             $this->setProjectSetting('saved-reports', json_encode($reports));
         } elseif ($action == 'delete') {
