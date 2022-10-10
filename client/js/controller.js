@@ -137,7 +137,7 @@ function applyModel(model) {
     }
     $("#report_name").val(model.reportname)
     values = model['columns'];
-    if (values.length > 0) {
+    if ( typeof(values) != "undefined" && values.length > 0) {
         $( "#tip_missing_col_1" ).remove();
         $( "#tip_missing_col_2" ).remove();
     }
@@ -148,12 +148,12 @@ function applyModel(model) {
     }
     tagRepeatables();
     values = model['filters'];
-    if (values.length > 0) {
+    if (typeof(values) != "undefined" && values.length > 0) {
         $( "#tip_exporting_all_rows" ).remove();
-    }
-    for ( i=0; i < values.length; i++) {
-        var copy = $('<div class="list-group-item" style="padding-left:2.5rem;">' + values[i].field + '</div>');
-        appendInputs(copy, $( "#row_filter" ), true, values[i]);
+        for ( i=0; i < values.length; i++) {
+            var copy = $('<div class="list-group-item" style="padding-left:2.5rem;">' + values[i].field + '</div>');
+            appendInputs(copy, $( "#row_filter" ), true, values[i]);
+        }
     }
 }
 
@@ -335,10 +335,11 @@ function saveExportJson() {
     $.ajax({
         url: $("#save-report").val(),
         timeout: 60000000,
-        type: 'GET',
+        type: 'POST',
         data: {'action': 'save', 'report_name': json.reportname, 'report_content': json},
         dataType: 'json',
         success: function (response) {
+            console.log(response);
             if (response.status === 'success') {
                 var $el = $("#saved-reports");
                 $el.empty(); // remove old options

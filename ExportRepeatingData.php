@@ -387,11 +387,12 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     public function manageReports()
     {
         $action = filter_var($_GET['action'], FILTER_SANITIZE_STRING);
+        $action2 = filter_var($_POST['action'], FILTER_SANITIZE_STRING);
         $reports = json_decode($this->getProjectSetting('saved-reports'), true);
 
-        if ($action == 'save') {
-            $name = filter_var($_GET['report_name'], FILTER_SANITIZE_STRING);
-            $content = filter_var_array($_GET['report_content'],FILTER_SANITIZE_STRING);
+        if ($action2 == 'save') {
+            $name = filter_var($_POST['report_name'], FILTER_SANITIZE_STRING);
+            $content = filter_var_array($_POST['report_content'],FILTER_SANITIZE_STRING);
             $reports[$name] = $content;
             $this->setProjectSetting('saved-reports', json_encode($reports));
         } elseif ($action == 'delete') {
