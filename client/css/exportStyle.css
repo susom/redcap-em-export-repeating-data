@@ -31,7 +31,7 @@
     color: #333;
     border-radius: 4px;
     border-color: #ddd;
-    margin: 0 -10pt 0 -10pt;
+    /*margin: 0 -10pt 0 -10pt;*/
     padding: 5pt 0 0 10pt;
 }
 
@@ -79,4 +79,8 @@ table#holder tr:last-child {
 }
 table#holder li img {
     height: 30px;
+}
+/*this is now disabled by default in bootstrap 5, so adding it here*/
+.ms-n2 {
+    margin-left: -0.5rem !important;
 }
