@@ -74,15 +74,15 @@ $port = (PORT === '') ? '' : ':'.PORT;
 
             <div class="col-md-8 col-sm-5  cardinal emphatic header nowrap text-left " style="min-width:200px">
                     <span>Report Name:   <input type="text" id="report_name" name="report_name" size="40"/><select
-                                class="ml-3 mb-1 jqbuttonmed  ui-corner-all " name="raw_or_label" id="raw_or_label"><option
+                                class="ms-3 mb-1 jqbuttonmed  ui-corner-all " name="raw_or_label" id="raw_or_label"><option
                                     value="label">Labels</option><option value="raw">Raw Data</option></select></span>
             </div>
-            <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-left">
+            <div class="col-md-2 col-sm-3 cardinal emphatic header nowrap text-start">
                 <button type="button" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget" data-toggle="modal" data-target="#promptForNameSaveReport">
                     Save Report
                 </button>
             </div>
-            <div class="col-md-2  col-sm-3 cardinal emphatic header nowrap text-left">
+            <div class="col-md-2  col-sm-3 cardinal emphatic header nowrap text-start">
                 <!--                    <button type="button" onclick="promptForUpload()" id="load_export_json" class="data_export_btn jqbuttonmed ui-button ui-corner-all ui-widget"> <i class="fas fa-file-upload"></i> Load Settings</button>-->
                 <span>
                             <select id="saved-reports" onchange="loadSavedReport()">
@@ -128,11 +128,12 @@ $port = (PORT === '') ? '' : ':'.PORT;
             <div class="col-md-9 pt-3">
                     <span><div class="cardinal">Filter Rows - Drag and Drop from left menu</div>
                     <div class="container droptarget" >
-                           <div class="col-12 mt-2"><label>Apply Filters to Data?</label> <input type="radio" id="aftd-yes" name="applyFiltersToData" value="true" checked>
+                           <div class="col-12 mt-2"><label class="ms-2">Apply Filters to Data?</label> <input type="radio" id="aftd-yes" name="applyFiltersToData" value="true" checked>
                           <label for="yes">Yes</label>
                           <input type="radio" id="aftd-no" name="applyFiltersToData" value="false" >
-                          <label for="female">No</label><div id="count-display" class="mr-1" style="float:right"> matching records: 0</div><button type="button" class="mr-1 mt-1 badge badge-light" style="float:right" onclick="runQuery(false, true)">count</button>
-                        <div class="spinner-border text-secondary mt-1 mr-1 mini-spin" role="status" id="count-running" style="display: none; float:right">
+                          <label for="female">No</label><div id="count-display" class="me-1" style="float:right">
+                               matching records: 0</div><button type="button" class="me-1 mt-1 badge bg-light" style="float:right" onclick="runQuery(false, true)">count</button>
+                        <div class="spinner-border text-secondary mt-1 me-1 mini-spin" role="status" id="count-running" style="display: none; float:right">
                             <span class="sr-only">Loading...</span>
                         </div></div>
                     </span>
@@ -159,7 +160,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 </div>
             </div>
 
-            <div class="col-md-9 ml-n2 mt-5">
+            <div class="col-md-9 ms-n2 mt-5">
                 <table width="100%"><tr><td>
                             <button type="button"  onclick="runQuery(true, false)"  id="preview" class=" jqbuttonmed ui-button ui-corner-all ui-widget">
                                 <i class="fas fa-eye"></i> Preview Data
@@ -170,11 +171,11 @@ $port = (PORT === '') ? '' : ':'.PORT;
                             </button>
                         </td></tr>
                     <tr><td>
-                            <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="longop-running" style="display:none">
+                            <div class="spinner-border text-secondary mt-1 ms-5" role="status" id="longop-running" style="display:none">
                                 <span class="sr-only">Loading...</span>
                             </div>
                         </td><td>
-                            <div class="spinner-border text-secondary mt-1 ml-5" role="status" id="export-running" style="display:none">
+                            <div class="spinner-border text-secondary mt-1 ms-5" role="status" id="export-running" style="display:none">
                                 <span class="sr-only">Loading...</span>
                             </div>
                         </td></tr>
@@ -208,7 +209,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
                 </div>
             </div>
 
-            <div class =" ml-n2 mt-5" id="data-error">
+            <div class =" ms-n2 mt-5" id="data-error">
                 <div id="data-error-message"></div>
             </div>
 

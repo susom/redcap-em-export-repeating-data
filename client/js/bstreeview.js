@@ -23,7 +23,7 @@
      */
     var templates = {
         treeview: '<div class="bstreeview"></div>',
-        treeviewItem: '<div href="#itemid" class="list-group-item" data-toggle="collapse"></div>',
+        treeviewItem: '<div href="#itemid" class="list-group-item" data-bs-toggle="collapse"></div>',
         treeviewGroupItem: '<div class="list-group collapse" id="itemid"></div>',
         treeviewItemStateIcon: '<i class="state-icon"></i>',
         treeviewItemIcon: '<i class="item-icon"></i>'
@@ -85,6 +85,7 @@
             }
             // Set main bstreeview class to element.
             $(this.element).addClass('bstreeview');
+            $(this.element).addClass('position-relative');
 
             this.initData({ nodes: this.tree });
             var _this = this;

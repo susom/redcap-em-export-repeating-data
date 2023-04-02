@@ -21,28 +21,28 @@ $instruments = $module->getInstrumentNames();
 
 <?php
 
-$primaryTag = "<span class='badge badge-info ml-5 repeating-primary'>Repeating: Primary/Anchor</span>";
+$primaryTag = "<span class='badge bg-info ms-5 repeating-primary'>Repeating: Primary/Anchor</span>";
 foreach ($instruments as $key => $instrument) {
     if ($module->isRepeatingForm($key) == 1 ) {
         $mydate = $module->getDateField($key);
         if ( $module->instanceSelectLink($key) || $module->hasChild($key)) {
-            $secondaryTag = "<span class='badge badge-primary ml-5 repeating-secondary'>Repeating; related to "
+            $secondaryTag = "<span class='badge bg-primary ms-5 repeating-secondary'>Repeating; related to "
                 . ($module->instanceSelectLink($key) ? $module->instanceSelectLink($key) : $module->hasChild($key)) . "</span>";
         } else {
             $secondaryTag = "";
         }
-        $tertiaryTag = "<span class='badge badge-warning ml-5 repeating-tertiary'>Repeating; Pivot & Filter</span><div class='repeating-tertiary'> closest " . $mydate . " within <input id='lower-bound-".$key."' name='lower-bound-".$key."' style='width:30px' type='text' maxlength='4'/> before and <input id='upper-bound-".$key."' name='upper-bound-".$key."' style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
+        $tertiaryTag = "<span class='badge bg-warning ms-5 repeating-tertiary'>Repeating; Pivot & Filter</span><div class='repeating-tertiary'> closest " . $mydate . " within <input id='lower-bound-".$key."' name='lower-bound-".$key."' style='width:30px' type='text' maxlength='4'/> before and <input id='upper-bound-".$key."' name='upper-bound-".$key."' style='width:30px'  type='text'/> <span class='target-date'> after @targetdate@ (days)</span></div>";
         // these are the static defaults; they get rewritten dynamically
         if (! $mydate && $module->isInstanceSelectLinked($key) == 0) {
             $cardinality = "tier-error";
-            $tag = "<span class='badge badge-danger ml-5'>Configuration Error</span>";
+            $tag = "<span class='badge bg-danger ms-5'>Configuration Error</span>";
         } else {
             $cardinality = "tier-2";
             $tag = $primaryTag . $secondaryTag . $tertiaryTag;
         }
     } else {
         $cardinality = "tier-0";
-        $tag = "<span class='badge badge-success ml-5'>Singleton</span>";
+        $tag = "<span class='badge bg-success ms-5'>Singleton</span>";
     }
     // cardinality is used to set the panel heading background color
     // tier-0 is easy, it's always green
@@ -55,13 +55,13 @@ foreach ($instruments as $key => $instrument) {
     ?>
     <div style="display: none;" class="ui-sortable-handle col-md-12 panel panel-default" id="panel-<?php echo $key ?>">
         <div class="panel-heading <?php echo $cardinality?> ref-<?php echo $cardinality?>">
-            <button class="badge fas fa-angle-down" type="button" data-toggle="collapse" data-target="#collapse-<?php echo $key ?>"
+            <button class="badge fas fa-angle-down text-dark" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse-<?php echo $key ?>"
                     aria-expanded="false" aria-controls="collapse-<?php echo $key ?>" onclick="toggleIcon('#collapse-ctl-<?php echo $key ?>')" id="collapse-ctl-<?php echo $key ?>">
 
             </button>
-            <label for="chb1" class="pr-1"><?php echo $instrument ?> <input type="checkbox"  id="<?php echo $key ?>_cb"  ></label>
-            <button type="button" class="delete-panel close pr-2" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+            <label for="chb1" class="pe-1"><?php echo $instrument ?> <input type="checkbox"  id="<?php echo $key ?>_cb"  ></label>
+            <button type="button" class="delete-panel btn-close pe-2" aria-label="Close">
             </button>
             <?php echo $tag ?>
         </div>
@@ -76,7 +76,7 @@ foreach ($instruments as $key => $instrument) {
                     ?>
 
                     <div class="col-md-3 cbox-panel">
-                        <label for="chb2" class="pr-1"><?php echo $field ?> <input type="checkbox"  id="<?php echo $field ?>"  class="column-selector <?php echo $key ?>" ></label>
+                        <label for="chb2" class="pe-1"><?php echo $field ?> <input type="checkbox"  id="<?php echo $field ?>"  class="column-selector <?php echo $key ?>" ></label>
                     </div>
                     <?php
                 }

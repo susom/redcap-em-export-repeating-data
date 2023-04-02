@@ -194,7 +194,7 @@ class ClientMetadata
                             panelHeading.removeClass('tier-1');
                             if (panelHeading.hasClass('ref-tier-2')) {
                                 // look for the instance linked panel; only tag as tier-3 if present
-                                var badge = $(this).find(".badge-primary");
+                                var badge = $(this).find(".bg-primary");
                                 var linkedToInstrument =  badge.text().substr(22).trim();
                                 var linkedInstruments = linkedToInstrument.split("|");
                                 targetDate = getInstrumentForField(firstRepeatingPanel + '_@date_field');
@@ -228,8 +228,7 @@ class ClientMetadata
 
             }
             function appendFieldFilterControls  () {
-                return '<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">\n' +
-                    '  <span aria-hidden="true">&times;</span>\n' +
+                return '<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria btn-close" aria-label="Close">\n' +
                     '</button>';
             }
 
@@ -432,7 +431,7 @@ class ClientMetadata
             $dberr = db_error();
             $module->emError('Query error in autocomplete generation: ' . print_r($dberr, TRUE));
          } else {
-            
+
             $nFilters = 0;
             while ($row = db_fetch_assoc($autodata)) {
                 if ($nFilters == 0) {
@@ -481,7 +480,7 @@ class ClientMetadata
                     $value = $ar['day'] .'-'. $ar['month'] .'-'. $ar['year'] .' '. $ar['hour'] .':'. $ar['minute'] . ':' .$ar['second'];
                 }
                 echo "  '$value',";
-                
+
             }
         }
         // $module->emDebug('YO1: ' . print_r($textFieldNames, TRUE));
@@ -494,7 +493,8 @@ class ClientMetadata
             //$module->emDebug('YO2: ' . print_r($textFieldName, TRUE));
             ?>
     <div id="row_filter" class="list-group filters-fields ui-droppable" style="min-height: 50px; width: 100%; display: none;">
-    <div href="#tree-item-2" class="list-group-item draggable1 ui-draggable ui-draggable-handle" data-toggle="collapse" style="padding-left:2.5rem;"><?php echo $textFieldName?><input type="hidden" name="field_name" value="<?php echo $textFieldName?>"><select class="x-form-text x-form-field limiter-operator" name="limiter_operator[]">
+    <div href="#tree-item-2" class="list-group-item draggable1 ui-draggable ui-draggable-handle"
+         data-bs-toggle="collapse" style="padding-left:2.5rem;"><?php echo $textFieldName?><input type="hidden" name="field_name" value="<?php echo $textFieldName?>"><select class="x-form-text x-form-field limiter-operator" name="limiter_operator[]">
 	<option value="E">=</option>
 	<option value="NE">not =</option>
             <option value="CONTAINS">contains</option>
@@ -505,8 +505,7 @@ class ClientMetadata
             <option value="NOT_EXIST">does not exist</option>
 </select>
 <input name="limiter_value[]" onblur="" class=" x-form-text x-form-field limiter-value" maxlength="255" style="max-width:150px;" value="" id="<?php echo $textFieldName?>_ac" type="text">
-<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria close" aria-label="Close">
-  <span aria-hidden="true">×</span>
+<select name="limiter_connector[]"><option value="AND">AND</option><option value="OR">OR</option></select><button type="button" class="delete-criteria btn-close" aria-label="Close">
 </button></div></div>
 <?php
         }

@@ -269,7 +269,7 @@ function configurationError(formdata) {
         }
     });
 
-    if ( $(".badge-danger:visible").length > 0) {
+    if ( $(".bg-danger:visible").length > 0) {
         showError("Please ask your REDCap administrator to configure this project with @PRINCIPAL_DATE " +
             "and/or @FORMINSTANCE action tags as per the <a href='https://github.com/susom/redcap-em-export-repeating-data'>documentation for this module</a>");
         errorFound = true;
@@ -323,7 +323,7 @@ function toggleIcon(id) {
         jqueryElement.removeClass('fa-angle-right');
         jqueryElement.addClass('fa-angle-down');
     }
-    // SRINI - SDM-135 - following is addded to avoid sortable issues 
+    // SRINI - SDM-135 - following is addded to avoid sortable issues
     // when closing and opening the div
     $( "#column_spec" ).sortable( "refreshPositions" );
 }
