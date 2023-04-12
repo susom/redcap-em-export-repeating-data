@@ -128,7 +128,7 @@ $(function () {
 });
 
 function applyModel(model) {
-    $("#row_filter").find(".list-group-item").remove(); // formerly remove
+    $("#row_filter").find(".list-group-item").remove();
     $(".panel").hide();
     $('.column-selector').prop("checked", false);
     if( !model.hasOwnProperty('reportname')) {
