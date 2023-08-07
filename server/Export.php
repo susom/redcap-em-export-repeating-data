@@ -95,10 +95,10 @@ class Export
     function applyUserExportRights($result)
     {
         global $module;
-        //this doesn't work $user=$module->getUser();
-        //this doesn't work either  $module->framework->getUser(USERID)
-//        $export_instr = $module->getUserRights()['data_export_instruments'];
-        $export_instr = $module->framework->getRights(USERID)['data_export_instruments'];
+        $export_instr = $module->getUserRights()['data_export_instruments'];
+        //$userId=$module->getUser()->getUserName();
+        //$export_instr = $module->getRights($userId)['data_export_instruments'];
+        //$module->emLog("export_instr $export_instr");
         $export_rights = [];
         preg_match_all('/\[([^\]]*)\]/', $export_instr, $export_rights);
         $rights = [];
