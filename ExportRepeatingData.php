@@ -77,7 +77,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     }
 
     private function applyUserViewingRights($dataDictionary) {
-        if (! SUPER_USER) {
+        if (defined('SUPER_USER') and  !SUPER_USER) {
             if (in_array('0', $this->userRights['forms'])) {
                 foreach ($dataDictionary as $field_name => $field_info) {
                     if (!$this->userRights['forms'][$field_info['form_name']]) {
