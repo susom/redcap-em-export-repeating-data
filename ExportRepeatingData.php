@@ -47,6 +47,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     private $userRights;
 
+    private $userId;
+
     /**
      *  constructor.
      */
@@ -55,13 +57,14 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         try {
-            $pid = static::getProjectId();
+            $pid = $this->getProjectId();
 
             if (isset($pid)) {
 
                 $this->setProject(new \Project(filter_var($pid, FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-                $this->userRights = $this->framework->getRights(USERID);
+                $this->userId = $this->getUser()->getUserName();
+                $this->userRights = $this->getRights($this->userId);
                 $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
                 $this->setDataDictionary($dataDictionary);
                 $referer = $_SERVER['HTTP_REFERER'];
@@ -77,7 +80,7 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
     }
 
     private function applyUserViewingRights($dataDictionary) {
-        if (defined('SUPER_USER') and  !SUPER_USER) {
+        if (! $this->isSuperUser()) {
             if (in_array('0', $this->userRights['forms'])) {
                 foreach ($dataDictionary as $field_name => $field_info) {
                     if (!$this->userRights['forms'][$field_info['form_name']]) {
