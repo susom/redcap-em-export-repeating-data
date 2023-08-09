@@ -38,7 +38,7 @@ $port = (PORT === '') ? '' : ':'.PORT;
     <form name="export-repeating" id="export-repeating">
         <!-- set up for calling REDcap API via Ajax to display controls for user-specified field filters (upper right) -->
         <input type="hidden" name="base-url" id="base-url"
-               value="<?php echo $module->getPrefix() . 'DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
+               value="<?php echo $module->getPrefix() . '/DataExport/report_filter_ajax.php?pid=' . PROJECT_ID ?>">
         <input type="hidden" name="redcap_csrf_token" id="redcap_csrf_token"
                value="<?php echo System::getCsrfToken() ?>">
         <input type="hidden" name="report-submit" id="report-submit"
