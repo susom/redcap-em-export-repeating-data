@@ -128,8 +128,12 @@ class Export
             //$module->emDebug("data dictionary :" . print_r($dd, TRUE));
 
             $phi_cols=[];
+            // user rights have been applied to the data dictionary, so if array key
             foreach ($headers as $index=>$header) {
-                if (array_key_exists($header, $dd)) {
+                if (!array_key_exists($header, $dd)) {
+                    $phi_cols[$index]=$header;
+                }
+                /*if (array_key_exists($header, $dd)) {
                     // for rights == 0, remove everything, should we leave record_id?
                     if ($rights[$dd[$header]['form_name']] === '0') {
                         $phi_cols[$index]=$header;
@@ -148,7 +152,7 @@ class Export
                         )) {
                         $phi_cols[$index]=$header;
                     }
-                }
+                }*/
             }
             //$module->emDebug("phi_cols[]=".print_r($phi_cols, true));
 

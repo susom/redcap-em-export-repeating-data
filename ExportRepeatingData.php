@@ -67,9 +67,13 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
                 $this->userRights = $this->getRights($this->userId);
                 $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
                 $this->setDataDictionary($dataDictionary);
-                $referer = $_SERVER['HTTP_REFERER'];
-                $indexOf4thslash = $this->strposX($referer, "/", 4);
-                $this->pathPrefix = substr($referer, 0, $indexOf4thslash);
+                $redcap_version = explode('_',APP_PATH_WEBROOT)[1];
+                // remove the end '/'
+                $this->pathPrefix = substr(APP_PATH_WEBROOT_FULL
+                    . 'redcap_' . $redcap_version, 0, -1);
+                //$referer = $_SERVER['HTTP_REFERER'];
+                //$indexOf4thslash = $this->strposX($referer, "/", 4);
+                //$this->pathPrefix = substr($referer, 0, $indexOf4thslash);
                 $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
                 $this->setExport(new Export($this->getProject(), $this->instrumentMetadata, $this->getProjectSetting("temp-file-days-to-expire") ? $this->getProjectSetting("temp-file-days-to-expire") : DEFAULT_NUMBER_OF_CACHE_DAYS, $this->getProjectSetting("temp-file-config")));
                 $this->clientMetadata = new ClientMetadata();
@@ -81,13 +85,33 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     private function applyUserViewingRights($dataDictionary) {
         if (! $this->isSuperUser()) {
-            if (in_array('0', $this->userRights['forms'])) {
-                foreach ($dataDictionary as $field_name => $field_info) {
-                    if (!$this->userRights['forms'][$field_info['form_name']]) {
-                        unset($dataDictionary[$field_name]);
+            //$this->emDebug(print_r($this->userRights, true));
+            $export_instr = $this->getUserRights()['data_export_instruments'];
+            $export_rights = [];
+            preg_match_all('/\[([^\]]*)\]/', $export_instr, $export_rights);
+            foreach ($export_rights[1] as $export_right) {
+                $split = explode(',', $export_right);
+                $instrument = $split[0];
+                $instrument_right = $split[1];
+                 //1 == phi allowed
+                if ($instrument_right !== 1) {
+                    foreach ($dataDictionary as $field_name => $field_info) {
+                        if ($instrument == $field_info['form_name'] && REDCap::getRecordIdField() != $field_name) {
+                            // 0 == no access;
+                            if ($instrument_right == 0) unset($dataDictionary[$field_name]);
+                            // 2 == no text, dates or phi;
+                            if ($instrument_right == 2
+                                && ($field_info['field_phi'] == 1 || $field_info['element_type'] == 'text'))
+                                unset($dataDictionary[$field_name]);
+                            // 3 == no phi;
+                            if ($instrument_right == 3
+                                && $field_info['field_phi'] == 1)
+                                unset($dataDictionary[$field_name]);
+                        }
                     }
                 }
             }
+            //$this->emDebug("Data Dictionary :" . print_r($dataDictionary, TRUE));
         }
         return $dataDictionary;
     }
