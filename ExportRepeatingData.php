@@ -58,29 +58,20 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
         try {
             $pid = $this->getProjectId();
-
             if (isset($pid)) {
-
                 $this->setProject(new \Project(filter_var($pid, FILTER_SANITIZE_NUMBER_INT)));
                 $this->setEventId($this->getFirstEventId());
-                $this->userId = $this->getUser()->getUserName();
-                $this->userRights = $this->getRights($this->userId);
-                $dataDictionary = $this->applyUserViewingRights($this->project->metadata);
-                $this->setDataDictionary($dataDictionary);
-                $redcap_version = explode('_',APP_PATH_WEBROOT)[1];
-                // remove the end '/'
-                $this->pathPrefix = substr(APP_PATH_WEBROOT_FULL
-                    . 'redcap_' . $redcap_version, 0, -1);
-                //$referer = $_SERVER['HTTP_REFERER'];
-                //$indexOf4thslash = $this->strposX($referer, "/", 4);
-                //$this->pathPrefix = substr($referer, 0, $indexOf4thslash);
-                $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id, $this->getDataDictionary());
-                $this->setExport(new Export($this->getProject(), $this->instrumentMetadata, $this->getProjectSetting("temp-file-days-to-expire") ? $this->getProjectSetting("temp-file-days-to-expire") : DEFAULT_NUMBER_OF_CACHE_DAYS, $this->getProjectSetting("temp-file-config")));
-                $this->clientMetadata = new ClientMetadata();
             }
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
+    }
+
+    private function getUserId() {
+        if ($this->userId == null) {
+            $this->userId = $this->getUser()->getUserName();
+        }
+        return $this->userId;
     }
 
     private function applyUserViewingRights($dataDictionary) {
@@ -157,9 +148,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
         // Evaluate all links for now - in the future you might have different rules for different links...
         if (@$link['name'] == "Generate DB Data" && !empty($project_id)) {
-            global $userid;
+
             // Hide this link from the general public
-            if ($userid == 'scweber' || $userid == 'sboosi' ) $result = $link;
+            if ($this->getUserId() == 'scweber' || $this->getUserId() == 'sboosi' ) $result = $link;
         } else {
             $result = $link;
         }
@@ -170,6 +161,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getUserRights() {
+        if ($this->userRights == null) {
+            $this->userRights = $this->getRights($this->getUserId());
+        }
         return $this->userRights;
     }
 
@@ -177,6 +171,12 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return string
      */
     public function getPrefix() {
+        if ($this->pathPrefix == null) {
+            $redcap_version = explode('_', APP_PATH_WEBROOT)[1];
+            // remove the end '/'
+            $this->pathPrefix = substr(APP_PATH_WEBROOT_FULL
+                . 'redcap_' . $redcap_version, 0, -1);
+        }
         return $this->pathPrefix;
     }
 
@@ -184,14 +184,14 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getInstrumentNames() {
-        return $this->instrumentMetadata->getInstrumentNames();
+        return $this->getInstrumentMetadata()->getInstrumentNames();
     }
 
     /**
      * @return array
      */
     public function getFieldNames($instrument) {
-        return $this->instrumentMetadata->getFieldNames($instrument);
+        return $this->getInstrumentMetadata()->getFieldNames($instrument);
     }
 
     /**
@@ -199,6 +199,9 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      */
     public function getDataDictionary()
     {
+        if ($this->dataDictionary == null) {
+            $this->dataDictionary = $this->applyUserViewingRights($this->project->metadata);
+        }
         return $this->dataDictionary;
     }
 
@@ -250,32 +253,32 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
 
     public function isRepeatingForm($key)
     {
-        return ($this->instrumentMetadata->isRepeating($key)['cardinality'] == 'repeating') ;
+        return ($this->getInstrumentMetadata()->isRepeating($key)['cardinality'] == 'repeating') ;
     }
 
     public function getDateField($key)
     {
-        return $this->instrumentMetadata->getDateField($key);
+        return $this->getInstrumentMetadata()->getDateField($key);
     }
 
     public function getValue($key)
     {
-        return $this->instrumentMetadata->getValue($key);
+        return $this->getInstrumentMetadata()->getValue($key);
     }
 
     public function isInstanceSelectLinked($key)
     {
-        return $this->instrumentMetadata->isInstanceSelectLinked($key);
+        return $this->getInstrumentMetadata()->isInstanceSelectLinked($key);
     }
 
     public function instanceSelectLink($key)
     {
-        return $this->instrumentMetadata->instanceSelectLinked($key);
+        return $this->getInstrumentMetadata()->instanceSelectLinked($key);
     }
 
     public function hasChild($instrument )
     {
-        return $this->instrumentMetadata->hasChild( $instrument);
+        return $this->getInstrumentMetadata()->hasChild( $instrument);
     }
 
 
@@ -285,6 +288,8 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      */
     public function getClientMetadata()
     {
+        if ($this->clientMetadata == null)
+            $this->clientMetadata = new ClientMetadata();
         try {
             $this->clientMetadata->getClientMetadata();
         } catch (\Exception $e) {
@@ -352,11 +357,25 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
         return $h . ':' . sprintf('%02d', $m) . ':' . sprintf('%02d', $s);
     }
 
+    private function getInstrumentMetadata() {
+        if ($this->instrumentMetadata == null) {
+            $this->instrumentMetadata = new InstrumentMetadata($this->getProject()->project_id,
+                $this->getDataDictionary());
+        }
+        return $this->instrumentMetadata;
+    }
+
     /**
      * @return Export
      */
     public function getExport()
     {
+        if ($this->export === null) {
+            $this->export = new Export($this->getProject(), $this->getInstrumentMetadata(),
+                $this->getProjectSetting("temp-file-days-to-expire") ?
+                    $this->getProjectSetting("temp-file-days-to-expire") :
+                DEFAULT_NUMBER_OF_CACHE_DAYS, $this->getProjectSetting("temp-file-config"));
+        }
         return $this->export;
     }
 
