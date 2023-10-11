@@ -288,20 +288,20 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      */
     public function getClientMetadata()
     {
-        if ($this->clientMetadata == null)
-            $this->clientMetadata = new ClientMetadata();
-        try {
-            $this->clientMetadata->getClientMetadata();
-        } catch (\Exception $e) {
-            echo $e->getMessage();
-            $this->emError($e->getMessage());
-            return "";
+        if (!$this->clientMetadata){
+            $this->setClientMetaData(new ClientMetadata());
         }
 
+        return $this->clientMetadata;
+    }
+
+    public function setClientMetaData($clientMetadata): void
+    {
+        $this->clientMetadata = $clientMetadata;
     }
     public function getFilterDefns() {
         try {
-            $this->clientMetadata->getFilterDefns();
+            $this->getClientMetadata()->getFilterDefns();
         } catch (\Exception $e) {
             echo $e->getMessage();
             $this->emError($e->getMessage());
