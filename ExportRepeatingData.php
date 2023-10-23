@@ -286,22 +286,22 @@ class ExportRepeatingData extends \ExternalModules\AbstractExternalModule
      * Convert project metadata into a json payload for pickup via ajax from the UI
      * @param array $config
      */
-    public function getClientMetadata()
+    public function getClientMetadataObject()
     {
         if (!$this->clientMetadata){
-            $this->setClientMetaData(new ClientMetadata());
+            $this->setClientMetaDataObject(new ClientMetadata());
         }
 
         return $this->clientMetadata;
     }
 
-    public function setClientMetaData($clientMetadata): void
+    public function setClientMetaDataObject($clientMetadata): void
     {
         $this->clientMetadata = $clientMetadata;
     }
     public function getFilterDefns() {
         try {
-            $this->getClientMetadata()->getFilterDefns();
+            $this->getClientMetadataObject()->getFilterDefns();
         } catch (\Exception $e) {
             echo $e->getMessage();
             $this->emError($e->getMessage());
