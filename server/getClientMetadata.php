@@ -14,7 +14,7 @@ try {
      * Build the data structures required to render the client
      */
 
-    $module->getClientMetadata();
+    $module->getClientMetadata()->getClientMetadata();
 
 } catch (\LogicException $e) {
     $module->emError($e->getMessage());
