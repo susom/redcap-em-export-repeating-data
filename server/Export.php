@@ -645,6 +645,7 @@ class Export
         global $module;
 
         $module->emDebug("Input Json :" . json_encode($json)) ;
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->Proj->project_id) : "redcap_data";
 
         // look up the default row limit and set to 200 if not otherwise specified in the EM config
         $rowLimit = $module->getProjectSetting('preview-record-limit');
@@ -676,7 +677,7 @@ class Export
 
         // first get the counts, as these are always needed
         if ($json->record_count === 'true' && empty($json->forms)) {
-            $countSql = "select count(distinct record ) as row_count from  redcap_data rd where project_id=". $this->Proj->project_id;
+            $countSql = "select count(distinct record ) as row_count from  $data_table rd where project_id=". $this->Proj->project_id;
         } else {
             // the controller ensures that json->forms will only ever be empty when record_count is true
             // this else triggers both when the user is clicking the count button but has at least one form
@@ -782,6 +783,7 @@ class Export
         $col =  $filter->field;
         $val = db_escape($filter->param);
         $dt = "string";
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($this->Proj->project_id) : "redcap_data";
 
         if ($this->endsWith($filter->validation, "_dmy")) {
             $col = "str_to_date(" . $col . ", '%Y-%m-%d')";
@@ -834,7 +836,7 @@ class Export
             $filterstr = $col . " not like '%" . $val . "%'";
         elseif ($filter->operator == "MAX" || $filter->operator == "MIN")
             // self join to pick up the max/min for the date in the instrument specified by the filter
-            $filterstr = $col . " = (select " . $filter->operator . "(rdx.value) from redcap_data rdx, redcap_metadata rmx
+            $filterstr = $col . " = (select " . $filter->operator . "(rdx.value) from $data_table rdx, redcap_metadata rmx
           where rdx.project_id  = rmx.project_id and rmx.field_name  = rdx.field_name and rdx.project_id  = "
                 . $this->Proj->project_id
                 . $this->getDagFilter('rdx', $this->Proj->project_id)
@@ -1396,10 +1398,12 @@ class Export
     function getInnerTableSql($formName, $fieldList,  $pid)
     {
         $recordId =  REDCap::getRecordIdField();
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($pid) : "redcap_data";
+
             return "select  rd.record as $recordId,
                         COALESCE(rd.instance, '1') " . $formName . "_instance,
                         $fieldList
-                                FROM redcap_data rd,
+                                FROM $data_table rd,
                                      redcap_metadata rm
                                 WHERE rd.project_id = rm.project_id
                                   and rm.field_name = rd.field_name
@@ -1426,6 +1430,8 @@ class Export
     function getDateProximityTableJoin($formName, $innerTableSql, $spec, $pid, $filters, $mode)
     {
         $recordId =  REDCap::getRecordIdField();
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($pid) : "redcap_data";
+
         $filter = $this->handleFilters($filters, $formName, 'AND', $mode != TEMP_TABLE_USE);
         $tableSql =  "(Select distinct ".$formName."_int.*, t.".$spec->foreign_key_ref."_instance
                           From ( $innerTableSql ) ".$formName."_int,
@@ -1433,7 +1439,7 @@ class Export
                                        COALESCE(rd.`instance`, 1) as ".$spec->foreign_key_ref."_instance,
                                        rd.value                   as ".$spec->foreign_key_field.",
                                        (select COALESCE(rd2.`instance`, 1)
-                                        from redcap_data rd2,
+                                        from $data_table rd2,
                                              redcap_metadata rm2
                                         where rd2.project_id = rm2.project_id
                                           and rm2.field_name = rd2.field_name
@@ -1444,7 +1450,7 @@ class Export
                                           and datediff(rd2.value, rd.value) <= $spec->upper_bound
                                         order by abs(datediff(rd2.value, rd.value)) asc
                                         limit 1)                  as ".$formName."_instance
-                                from redcap_data rd,
+                                from $data_table rd,
                                      redcap_metadata rm
                                 where rd.project_id = rm.project_id
                                   and rd.project_id = $pid
@@ -1463,11 +1469,12 @@ class Export
 
     function getTableJoinClause($recordId, $fieldList, $pid, $formName, $filters,  $grouper,  $instanceSelect, $mode)
     {
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($pid) : "redcap_data";
         $comma = (strlen($instanceSelect) > 0 || strlen($fieldList) > 0 ? ',' : '');
         $finalSql= "\n(select * from (select /*line1382*/ rd.record  $recordId $comma
         $instanceSelect
         $fieldList
-      FROM redcap_data rd,
+      FROM $data_table rd,
            redcap_metadata rm
       WHERE rd.project_id = rm.project_id
         and rm.field_name = rd.field_name ".

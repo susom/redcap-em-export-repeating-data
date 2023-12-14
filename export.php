@@ -281,12 +281,14 @@ foreach ($json->forms as $form) {
         $formSql = $formSql . ", max(case when rd.field_name = '" . $field . "' then rd.value end) " . $field . " ";
     }
 
+    $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($project_id) : "redcap_data";
+
     if ($form->cardinality == "singleton") {
-        $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " .
+        $formSql = $formSql . " FROM $data_table rd, redcap_metadata rm " .
                 "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " .
                 "GROUP BY rd.record" ;
     } else {
-        $formSql = $formSql . " FROM redcap_data rd, redcap_metadata rm " .
+        $formSql = $formSql . " FROM $data_table rd, redcap_metadata rm " .
                 "WHERE rd.project_id  = rm.project_id and rm.field_name  = rd.field_name and rd.project_id = " . $project_id . " and rm.form_name = '" . $form->form_name . "' " .
                 "GROUP BY rd.record, rd.instance" ;
     }

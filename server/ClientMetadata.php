@@ -416,8 +416,10 @@ class ClientMetadata
 
     function getFilterDefns() {
         global $module;
+        $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($module->getProjectId()) : "redcap_data";
+
         $sql = "select rd.field_name,substring(value,1,33) value, element_validation_type
-                        from redcap_data rd
+                        from $data_table rd
                         join redcap_metadata rm on rd.project_id = rm.project_id
                          and rm.field_name = rd.field_name
                         where rd.project_id = ".$module->getProjectId()."
